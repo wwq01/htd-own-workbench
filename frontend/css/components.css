@@ -1,0 +1,464 @@
+/* ============================================================
+   荒天帝工作台 - 通用组件样式
+   所有 Htp 组件的基础样式实现
+   ============================================================ */
+
+/* ===== HtpButton 按钮 ===== */
+.htp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1;
+  border-radius: var(--radius-base);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  user-select: none;
+  outline: none;
+}
+.htp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 主按钮 */
+.htp-btn--primary {
+  background-color: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.htp-btn--primary:not(:disabled):hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* 次按钮 */
+.htp-btn--secondary {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+.htp-btn--secondary:not(:disabled):hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* 危险按钮 */
+.htp-btn--danger {
+  background-color: var(--color-danger);
+  color: #fff;
+  border-color: var(--color-danger);
+}
+.htp-btn--danger:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+/* 文字按钮 */
+.htp-btn--text {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+  padding: 4px 8px;
+}
+.htp-btn--text:not(:disabled):hover {
+  color: var(--color-primary);
+  background-color: transparent;
+}
+
+/* 小尺寸 */
+.htp-btn--sm {
+  padding: 4px 12px;
+  font-size: var(--font-size-sm);
+}
+
+/* ===== HtpModal 弹窗 ===== */
+.htp-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--transition-fast);
+}
+
+.htp-modal {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-modal);
+  min-width: 400px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: scaleIn var(--transition-base);
+}
+
+.htp-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-base) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.htp-modal__title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.htp-modal__close {
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: color var(--transition-fast);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 4px;
+}
+.htp-modal__close:hover {
+  color: var(--text-primary);
+}
+
+.htp-modal__body {
+  flex: 1;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+}
+
+.htp-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-base) var(--spacing-lg);
+  border-top: 1px solid var(--border-default);
+}
+
+/* ===== HtpCard 卡片 ===== */
+.htp-card {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-default);
+  padding: var(--card-padding-y) var(--card-padding-x);
+  transition: border-color var(--transition-fast);
+}
+.htp-card--hover:hover {
+  border-color: var(--border-hover);
+}
+
+.htp-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-base);
+}
+
+.htp-card__title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+/* ===== HtpInput 输入框 ===== */
+.htp-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.htp-input::placeholder {
+  color: var(--text-tertiary);
+}
+.htp-input:focus {
+  border-color: var(--color-primary);
+}
+.htp-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 文本域 */
+.htp-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: var(--line-height-body);
+}
+.htp-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+.htp-textarea:focus {
+  border-color: var(--color-primary);
+}
+
+/* 表单项 */
+.htp-form-item {
+  margin-bottom: var(--spacing-base);
+}
+.htp-form-item__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+.htp-form-item__label--required::after {
+  content: ' *';
+  color: var(--color-danger);
+}
+
+/* ===== HtpSelect 下拉选择 ===== */
+.htp-select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.htp-select:focus {
+  border-color: var(--color-primary);
+}
+.htp-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.htp-select option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* ===== HtpTag 状态标签 ===== */
+.htp-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* 默认（灰色） */
+.htp-tag--default {
+  background-color: rgba(100, 116, 139, 0.15);
+  color: var(--text-tertiary);
+}
+
+/* 主色 */
+.htp-tag--primary {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: var(--color-primary);
+}
+
+/* 成功 */
+.htp-tag--success {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+/* 警告 */
+.htp-tag--warning {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+/* 危险 */
+.htp-tag--danger {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+}
+
+/* 信息 */
+.htp-tag--info {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--color-info);
+}
+
+/* 紫色 */
+.htp-tag--purple {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
+}
+
+/* 橙色 */
+.htp-tag--orange {
+  background-color: rgba(249, 115, 22, 0.15);
+  color: #F97316;
+}
+
+/* 青色 */
+.htp-tag--cyan {
+  background-color: rgba(6, 182, 212, 0.15);
+  color: #06B6D4;
+}
+
+/* ===== HtpCheckbox 复选框 ===== */
+.htp-checkbox {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 6px;
+  user-select: none;
+}
+
+.htp-checkbox__input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.htp-checkbox__label {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+/* ===== HtpEmpty 空状态 ===== */
+.htp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl) var(--spacing-base);
+  color: var(--text-tertiary);
+}
+
+.htp-empty__icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-base);
+  opacity: 0.3;
+}
+
+.htp-empty__text {
+  font-size: var(--font-size-base);
+  color: var(--text-tertiary);
+}
+
+/* ===== 进度条 ===== */
+.htp-progress {
+  width: 100%;
+  height: 6px;
+  background-color: var(--bg-hover);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.htp-progress__bar {
+  height: 100%;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-base);
+}
+
+/* ===== 日期输入框 ===== */
+.htp-input[type="date"] {
+  color-scheme: dark;
+}
+
+/* ===== 筛选栏 ===== */
+.htp-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-base);
+}
+
+.htp-filter-bar__item {
+  min-width: 120px;
+}
+
+/* ===== 标签页切换 ===== */
+.htp-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: var(--spacing-base);
+}
+
+.htp-tab {
+  padding: 10px 20px;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.htp-tab:hover {
+  color: var(--text-primary);
+}
+.htp-tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ===== 列表项 ===== */
+.htp-list-item {
+  display: flex;
+  align-items: center;
+  padding: 10px var(--spacing-lg);
+  min-height: var(--list-row-height);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+  transition: background-color var(--transition-fast);
+  position: relative;
+}
+.htp-list-item:hover {
+  background-color: var(--bg-hover);
+}
+.htp-list-item--completed {
+  opacity: 0.5;
+}
+.htp-list-item--selected {
+  background-color: var(--bg-hover);
+}
+.htp-list-item--selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-primary);
+}

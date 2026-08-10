@@ -1,0 +1,209 @@
+/**
+ * 荒天帝工作台 - Vue 应用入口
+ * 创建 Vue 实例、注册 Pinia、注册全局组件、初始化路由、挂载布局
+ */
+
+// ===== 导航菜单配置 =====
+const NAV_ITEMS = [
+  { path: '/', label: '首页总览', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+  { path: '/todo', label: '今日/明日计划', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+  { path: '/project', label: '项目管理', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+  { path: '/develop', label: '开发工作', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
+  { path: '/entertainment', label: '游戏娱乐', icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { path: '/study', label: '充电学习', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+  { path: '/review', label: '复盘与沉淀', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
+  { path: '/secret', label: '凭据保险箱', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
+  { path: '/data', label: '数据与部署', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4' },
+  { path: '/settings', label: '系统设置', icon: 'M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z M19.4 15a1.7 1.7 0 00.34 1.88l.06.06-1.42 1.42-.06-.06A1.7 1.7 0 0016.44 18l-.38.16a1.7 1.7 0 00-1.06 1.57V20h-2v-.27a1.7 1.7 0 00-1.06-1.57l-.38-.16a1.7 1.7 0 00-1.88.34l-.06.06-1.42-1.42.06-.06A1.7 1.7 0 008.6 15l-.16-.38a1.7 1.7 0 00-1.57-1.06H6v-2h.87a1.7 1.7 0 001.57-1.06L8.6 10a1.7 1.7 0 00-.34-1.88l-.06-.06L9.62 6.64l.06.06A1.7 1.7 0 0011.56 7l.38-.16A1.7 1.7 0 0013 5.27V5h2v.27a1.7 1.7 0 001.06 1.57l.38.16a1.7 1.7 0 001.88-.34l.06-.06 1.42 1.42-.06.06A1.7 1.7 0 0019.4 10l.16.38a1.7 1.7 0 001.57 1.06H22v2h-.87a1.7 1.7 0 00-1.57 1.06L19.4 15z' },
+];
+
+// ===== 产品 Logo SVG =====
+const LOGO_SVG = `<svg class="app-sidebar__logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M16 2L4 7v8c0 7 5 12 12 15 7-3 12-8 12-15V7L16 2z" fill="#3B82F6" fill-opacity="0.15" stroke="#3B82F6" stroke-width="1.5"/>
+  <path d="M16 8L10 14v8h4v-4h4v4h4v-8L16 8z" fill="#3B82F6"/>
+</svg>`;
+
+// ===== 主应用组件 =====
+const App = {
+  name: 'App',
+  setup() {
+    const appStore = useAppStore();
+    const dataStore = useDataStore();
+
+    // 当前路由信息
+    const currentRoute = Vue.ref(null);
+    const currentParams = Vue.ref({});
+    const currentPath = Vue.ref('/');
+
+    // 快速备忘输入
+    const memoInput = Vue.ref('');
+
+    // 导航菜单
+    const navItems = NAV_ITEMS;
+
+    // 页面组件映射
+    const pageComponents = {
+      home: HomePage,
+      todo: TodoPage,
+      project: ProjectPage,
+      develop: DevelopPage,
+      entertainment: EntertainmentPage,
+      study: StudyPage,
+      review: ReviewPage,
+      secret: SecretPage,
+      data: DataPage,
+      settings: SettingsPage,
+    };
+
+    // 当前页面组件
+    const currentPage = Vue.computed(() => {
+      const route = currentRoute.value;
+      if (!route) return pageComponents.home;
+      return pageComponents[route.module] || pageComponents.home;
+    });
+
+    // 当前页面标题
+    const pageTitle = Vue.computed(() => {
+      return currentRoute.value?.title || '首页总览';
+    });
+
+    // 导航点击
+    function handleNav(path) {
+      htdRouter.navigate(path);
+    }
+
+    // 快速备忘保存（直接调 dataStore.createMemo，已包含校验+toast+刷新）
+    async function saveMemo() {
+      const content = memoInput.value;
+      if (!content || !content.trim()) return;
+      try {
+        const created = await dataStore.createMemo(content);
+        if (created) memoInput.value = '';
+      } catch (e) {
+        // dataStore 内部已 showToast 错误提示
+      }
+    }
+
+    // 一键导出
+    function handleExport() {
+      showToast('导出功能即将上线', 'warning');
+    }
+
+    // 监听路由变化
+    Vue.onMounted(() => {
+      // 先挂载路由变化回调的桥接对象，确保 initRouter 首次 renderRoute 能写入数据
+      window.__htdApp = {
+        get currentRoute() { return currentRoute.value; },
+        set currentRoute(v) { currentRoute.value = v; },
+        get currentParams() { return currentParams.value; },
+        set currentParams(v) { currentParams.value = v; },
+        get currentPath() { return currentPath.value; },
+        set currentPath(v) {
+          currentPath.value = v;
+          appStore.setPath(v);
+        },
+      };
+
+      // 再初始化路由（首次 renderRoute 会写入上面的桥接对象）
+      htdRouter.initRouter();
+
+      // 拉取初始数据
+      dataStore.fetchStatistics();
+      appStore.refreshDataCount();
+      appStore.loadSettings();
+    });
+
+    return {
+      appStore,
+      dataStore,
+      navItems,
+      currentPage,
+      pageTitle,
+      memoInput,
+      LOGO_SVG,
+      handleNav,
+      saveMemo,
+      handleExport,
+    };
+  },
+  template: `
+    <div class="app-layout">
+      <!-- 左侧导航栏 -->
+      <aside class="app-sidebar">
+        <div class="app-sidebar__logo">
+          <span v-html="LOGO_SVG"></span>
+          <span class="app-sidebar__logo-text">荒天帝工作台</span>
+        </div>
+        <nav class="app-sidebar__nav">
+          <div
+            v-for="item in navItems"
+            :key="item.path"
+            class="app-sidebar__nav-item"
+            :class="{ 'app-sidebar__nav-item--active': appStore.currentPath === item.path }"
+            @click="handleNav(item.path)"
+          >
+            <svg class="app-sidebar__nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" :d="item.icon"></path>
+            </svg>
+            <span>{{ item.label }}</span>
+          </div>
+        </nav>
+        <div class="app-sidebar__footer">
+          <div class="app-sidebar__version">v{{ appStore.version }}</div>
+          <div class="app-sidebar__stats">数据条目：{{ appStore.totalDataCount }}</div>
+        </div>
+      </aside>
+
+      <!-- 右侧主区域 -->
+      <main class="app-main">
+        <!-- 顶部工具栏 -->
+        <header class="app-topbar">
+          <span class="app-topbar__title" id="page-title">{{ pageTitle }}</span>
+          <div class="app-topbar__memo-input">
+            <input
+              v-model="memoInput"
+              class="htp-input"
+              placeholder="快速备忘... 输入后按回车保存"
+              @keyup.enter="saveMemo"
+            />
+          </div>
+          <div class="app-topbar__actions">
+            <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="handleExport">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              导出数据
+            </button>
+          </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="app-content">
+          <component :is="currentPage"></component>
+        </div>
+      </main>
+    </div>
+  `,
+};
+
+// ===== 创建 Vue 应用 =====
+const app = Vue.createApp(App);
+
+// 安装 Pinia
+app.use(window.htdPinia);
+
+// 注册全局组件
+app.component('HtpButton', HtpButton);
+app.component('HtpModal', HtpModal);
+app.component('HtpCard', HtpCard);
+app.component('HtpInput', HtpInput);
+app.component('HtpTextarea', HtpTextarea);
+app.component('HtpSelect', HtpSelect);
+app.component('HtpTag', HtpTag);
+app.component('HtpCheckbox', HtpCheckbox);
+app.component('HtpEmpty', HtpEmpty);
+
+// 挂载应用
+app.mount('#app');
+
+console.log('荒天帝工作台前端已启动');

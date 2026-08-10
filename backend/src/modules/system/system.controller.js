@@ -1,0 +1,128 @@
+/**
+ * 系统模块 - 控制层
+ */
+import systemService from './system.service.js';
+import dataService from './data.service.js';
+import backupService from './backup.service.js';
+import settingsService from './settings.service.js';
+
+class SystemController {
+  /**
+   * 健康检查
+   * GET /api/v1/system/health
+   */
+  async healthCheck(req, res, next) {
+    try {
+      const data = await systemService.healthCheck();
+      res.success(data);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 全局统计数据
+   * GET /api/v1/system/statistics
+   */
+  async getStatistics(req, res, next) {
+    try {
+      const data = await systemService.getStatistics();
+      res.success(data);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 各模块数据条目统计
+   * GET /api/v1/system/data-stats
+   */
+  async getDataStats(req, res, next) {
+    try {
+      const data = await systemService.getDataStats();
+      res.success(data);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async exportData(req, res, next) {
+    try {
+      const data = await dataService.exportAll();
+      res.success(data);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async importData(req, res, next) {
+    try {
+      const data = await dataService.importAll(req.body);
+      res.success(data);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async clearData(req, res, next) {
+    try {
+      const data = await dataService.clearAll(req.body);
+      res.success(data);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listBackups(req, res, next) {
+    try {
+      res.success(await backupService.listBackups());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createBackup(req, res, next) {
+    try {
+      res.success(await backupService.createBackup());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async downloadBackup(req, res, next) {
+    try {
+      const filePath = backupService.getBackupPath(req.params.fileName);
+      res.download(filePath, req.params.fileName, (err) => {
+        if (err && !res.headersSent) next(err);
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async removeBackup(req, res, next) {
+    try {
+      res.success(await backupService.removeBackup(req.params.fileName));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getSettings(req, res, next) {
+    try {
+      res.success(await settingsService.getSettings());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateSettings(req, res, next) {
+    try {
+      res.success(await settingsService.updateSettings(req.body));
+    } catch (err) {
+      next(err);
+    }
+  }
+}
+
+export default new SystemController();

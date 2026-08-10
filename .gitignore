@@ -1,0 +1,23 @@
+# Dependencies and local environments
+node_modules/
+backend/.env
+*.local
+
+# Build and runtime output
+build/
+backend/build/
+coverage/
+*.log
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local SQLite data; keep the empty schema template as a project asset.
+*.db
+!backend/prisma/template.db
+
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

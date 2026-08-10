@@ -1,0 +1,288 @@
+// 荒天帝工作台 - Prisma Schema
+// 数据库：SQLite
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// 通用基础模型（通过 Prisma 的 mixin 模式手动复用字段）
+// 所有表均包含：id、createdAt、updatedAt、deletedAt
+// ============================================================
+
+// ===== 全局备忘 =====
+model Memo {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@map("memos")
+}
+
+// ===== 待办事项（今日工作/明日计划） =====
+model Todo {
+  id            String   @id @default(cuid())
+  title         String
+  category      String   @default("日常事务") // 售前工作/日常事务/生活事项
+  priority      String   @default("中") // 高/中/低
+  status        String   @default("pending") // pending/completed
+  estimatedTime String?  // 预计耗时
+  remark        String?  // 补充备注
+  todoDate      String   // 待办日期 YYYY-MM-DD（区分今日/明日/历史）
+  completedAt   DateTime? // 完成时间
+  sortOrder     Int      @default(0) // 排序
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([todoDate])
+  @@index([status])
+  @@index([category])
+  @@map("todos")
+}
+
+// ===== 项目主表（售前定制） =====
+model Project {
+  id              String   @id @default(cuid())
+  customerName    String   // 客户名称
+  phase           String   @default("需求沟通") // 项目阶段
+  securityDomains String   @default("[]") // 安全领域 JSON 数组（多选）
+  priority        String   @default("中") // 项目优先级
+  background      String?  // 项目背景
+  coreRequirements String? // 核心需求
+  solutionVersion String?  // 方案版本
+  contactInfo     String?  // 联系人信息
+  projectMemo     String?  // 项目备忘
+  startDate       String?  // 启动时间 YYYY-MM-DD
+  expectedEndDate String?  // 预计结项时间 YYYY-MM-DD
+  progress        Int      @default(0) // 进度百分比 0-100
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  milestones      ProjectMilestone[]
+  tasks           ProjectTask[]
+
+  @@index([phase])
+  @@map("projects")
+}
+
+// ===== 项目里程碑 =====
+model ProjectMilestone {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String   // 里程碑名称
+  dueDate   String   // 截止日期 YYYY-MM-DD
+  completed Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([dueDate])
+  @@map("project_milestones")
+}
+
+// ===== 项目任务（一级任务） =====
+model ProjectTask {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String   // 任务名称
+  completed Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_tasks")
+}
+
+// ===== 个人开发项目 =====
+model DevProject {
+  id          String   @id @default(cuid())
+  name        String   // 项目名称
+  description String?  // 项目描述
+  status      String   @default("开发中") // 开发中/已完成/搁置
+  techStack   String   @default("[]") // 技术栈标签 JSON 数组
+  todoItems   String   @default("[]") // 待完成事项列表 JSON 数组
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@index([status])
+  @@map("dev_projects")
+}
+
+// ===== 代码片段库 =====
+model DevSnippet {
+  id        String   @id @default(cuid())
+  name      String   // 片段名称
+  category  String   @default("其他") // 片段分类
+  code      String   // 代码内容
+  remark    String?  // 备注说明
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([category])
+  @@map("dev_snippets")
+}
+
+// ===== 开发问题记录 =====
+model DevIssue {
+  id            String   @id @default(cuid())
+  title         String   // 问题标题
+  status        String   @default("待解决") // 待解决/排查中/已解决
+  symptom       String?  // 问题现象
+  investigation String?  // 排查过程
+  solution      String?  // 最终解决方案
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([status])
+  @@map("dev_issues")
+}
+
+// ===== 娱乐内容 =====
+model Entertainment {
+  id        String   @id @default(cuid())
+  name      String   // 作品名称
+  type      String   @default("游戏") // 游戏/番剧/剧集/书籍/其他
+  status    String   @default("想看") // 想看/在玩/已通关/弃坑
+  rating    Int      @default(0) // 星级评分 0-5
+  progress  String?  // 进度记录
+  review    String?  // 个人短评
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([type])
+  @@index([status])
+  @@map("entertainments")
+}
+
+// ===== 学习记录 =====
+model StudyRecord {
+  id            String   @id @default(cuid())
+  type          String   @default("专业学习") // 专业学习/通用学习
+  techDirection String?  // 技术方向标签
+  topic         String   // 学习主题
+  notes         String?  // 核心笔记
+  source        String?  // 资料来源
+  duration      Float    @default(0) // 学习时长（小时）
+  studyDate     String   // 学习日期 YYYY-MM-DD
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([type])
+  @@index([studyDate])
+  @@map("study_records")
+}
+
+// ===== 待学清单 =====
+model StudyPending {
+  id           String   @id @default(cuid())
+  resourceType String?  // 资源类型标签
+  title        String   // 资源标题
+  sourceLink   String?  // 来源链接
+  remark       String?  // 备注说明
+  completed    Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@index([completed])
+  @@map("study_pendings")
+}
+
+// ===== 复盘记录（周复盘 + 项目复盘） =====
+model Review {
+  id                    String   @id @default(cuid())
+  type                  String   // week/project
+  weekKey               String?  // 周次标识 2026-W01（周复盘用）
+  projectId             String?  // 关联项目 ID（项目复盘用）
+  // 自动填充数据（JSON）
+  autoData              String   @default("{}") // 自动填充的量化数据
+  // 周复盘模板字段
+  highlights            String?  // 本周核心成果亮点
+  pitfalls              String?  // 踩坑与不足
+  reusableExperience    String?  // 沉淀可复用经验
+  improvements          String?  // 下周改进方向
+  // 项目复盘模板字段
+  customerPainPoints    String?  // 客户核心痛点与关注点
+  presentationHighlights String? // 方案/演示加分项
+  exposedWeakness       String?  // 暴露的不足
+  reusableTips          String?  // 可复用经验技巧
+  reviewResult          String?  // 复盘结果：成单/丢单/暂停/持续跟进
+  // 元数据
+  remark                String?
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  @@index([type])
+  @@index([weekKey])
+  @@index([projectId])
+  @@map("reviews")
+}
+
+// ===== 凭据保险箱 =====
+model Secret {
+  id            String   @id @default(cuid())
+  name          String   // 凭据名称
+  type          String   @default("其他") // 环境账号/平台账号/API密钥/授权码/其他
+  content       String   // 账号/密钥内容
+  usageScenario String?  // 使用场景
+  remark        String?  // 备注
+  expiryDate    String?  // 有效期 YYYY-MM-DD
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([type])
+  @@map("secrets")
+}
+
+// ===== 工作部署记录 =====
+model Deployment {
+  id         String   @id @default(cuid())
+  name       String   // 环境名称
+  envType    String   @default("测试环境") // 演示环境/测试环境/生产环境/本地环境
+  deviceType String?  // 设备类型
+  ipAddress  String?  // IP地址
+  config     String?  // 配置参数
+  steps      String?  // 部署步骤
+  commands   String?  // 常用命令
+  remark     String?  // 备注
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@index([envType])
+  @@map("deployments")
+}

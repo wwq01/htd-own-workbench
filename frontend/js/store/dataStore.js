@@ -1,0 +1,471 @@
+/**
+ * 业务数据缓存：首页统计数据、通用动作封装
+ */
+const useDataStore = Pinia.defineStore('data', {
+  state: () => ({
+    // 首页统计数据
+    statistics: {
+      projectCount: 0,
+      devIssueCount: 0,
+      todayTodoCount: 0,
+      weekStudyHours: 0,
+      memoCount: 0,
+      entertainmentWantCount: 0,
+      entertainmentPlayingCount: 0,
+      secretCount: 0,
+      deploymentCount: 0,
+      upcomingMilestones: [],
+      recentMemos: [],
+      tomorrowTodos: [],
+    },
+
+    // 全局备忘列表（顶部快速备忘用）
+    recentMemos: [],
+
+    // 各模块数据条目统计
+    dataStats: [],
+  }),
+
+  actions: {
+    // ============ 首页聚合 ============
+    // 拉取首页统计数据
+    async fetchStatistics() {
+      try {
+        const data = await htdApi.get('/system/statistics');
+        this.statistics = { ...this.statistics, ...data };
+      } catch (err) {
+        console.error('获取统计数据失败:', err);
+      }
+    },
+
+    // 拉取最近备忘
+    async fetchRecentMemos() {
+      try {
+        const data = await htdApi.get('/system/statistics');
+        this.recentMemos = data.recentMemos || [];
+      } catch (err) {
+        console.error('获取最近备忘失败:', err);
+      }
+    },
+
+    // 拉取各模块数据条目统计
+    async fetchDataStats() {
+      try {
+        const data = await htdApi.get('/system/data-stats');
+        this.dataStats = data.stats || [];
+      } catch (err) {
+        console.error('获取数据统计失败:', err);
+      }
+    },
+
+    // 刷新首页相关的所有全局数据（增删后调用）
+    async refreshAll() {
+      const appStore = useAppStore();
+      await Promise.all([
+        this.fetchStatistics(),
+        appStore.refreshDataCount(),
+      ]);
+    },
+
+    // ============ 备忘模块 ============
+    // 新增备忘（快速备忘入口）
+    async createMemo(content) {
+      const trimmed = (content || '').trim();
+      if (!trimmed) {
+        showToast('备忘内容不能为空', 'warning');
+        return null;
+      }
+      const created = await htdApi.post('/memos', { content: trimmed });
+      showToast('备忘已保存', 'success');
+      await this.refreshAll();
+      return created;
+    },
+
+    // 删除备忘（首页快捷删除）
+    async deleteMemo(id) {
+      if (!id) return;
+      await htdApi.del(`/memos/${id}`);
+      showToast('备忘已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // ============ 待办模块 ============
+    // 新增待办
+    async createTodo(payload) {
+      const r = await htdApi.post('/todos', payload);
+      showToast('已创建待办', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // 编辑待办
+    async updateTodo(id, payload) {
+      const r = await htdApi.put(`/todos/${id}`, payload);
+      showToast('已更新待办', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // 删除待办
+    async deleteTodo(id) {
+      await htdApi.del(`/todos/${id}`);
+      showToast('已删除待办', 'success');
+      await this.refreshAll();
+    },
+
+    // 切换完成状态
+    async toggleTodo(id) {
+      return htdApi.post(`/todos/${id}/toggle`);
+    },
+
+    // 今日未完成 → 明日
+    async migrateTodayPendingToTomorrow() {
+      const r = await htdApi.post('/todos/migrate/today-to-tomorrow');
+      showToast(`已迁移 ${r.movedCount || 0} 条到明日`, 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // 明日所有 → 今日
+    async migrateTomorrowToToday() {
+      const r = await htdApi.post('/todos/migrate/tomorrow-to-today');
+      showToast(`已迁移 ${r.movedCount || 0} 条到今日`, 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 项目模块 ============
+    // 项目列表（带筛选）
+    async fetchProjects(query = {}) {
+      return htdApi.get('/projects', query);
+    },
+
+    // 项目详情（含里程碑 + 任务）
+    async fetchProjectDetail(id) {
+      return htdApi.get(`/projects/${id}`);
+    },
+
+    // 新增项目
+    async createProject(payload) {
+      const r = await htdApi.post('/projects', payload);
+      showToast('项目已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // 编辑项目
+    async updateProject(id, payload) {
+      const r = await htdApi.put(`/projects/${id}`, payload);
+      showToast('项目已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // 更新项目备忘（失焦自动保存）
+    async updateProjectMemo(id, projectMemo) {
+      const r = await htdApi.patch(`/projects/${id}/memo`, { projectMemo });
+      return r;
+    },
+
+    // 删除项目（级联删除里程碑 + 任务）
+    async deleteProject(id) {
+      await htdApi.del(`/projects/${id}`);
+      showToast('项目已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // 一键生成项目复盘
+    async generateProjectReview(id) {
+      const r = await htdApi.post(`/projects/${id}/generate-review`);
+      showToast(r.created === false ? '已存在复盘草稿' : '复盘草稿已生成', 'success');
+      return r;
+    },
+
+    // ============ 项目里程碑模块 ============
+    async fetchMilestones(projectId) {
+      return htdApi.get('/milestones', { projectId });
+    },
+
+    async createMilestone(payload) {
+      const r = await htdApi.post('/milestones', payload);
+      showToast('里程碑已添加', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    async updateMilestone(id, payload) {
+      const r = await htdApi.put(`/milestones/${id}`, payload);
+      showToast('里程碑已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    async deleteMilestone(id) {
+      await htdApi.del(`/milestones/${id}`);
+      showToast('里程碑已删除', 'success');
+      await this.refreshAll();
+    },
+
+    async toggleMilestone(id) {
+      return htdApi.post(`/milestones/${id}/toggle`);
+    },
+
+    // ============ 项目任务模块 ============
+    async fetchTasks(projectId) {
+      return htdApi.get('/tasks', { projectId });
+    },
+
+    async createTask(payload) {
+      const r = await htdApi.post('/tasks', payload);
+      showToast('任务已添加', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    async updateTask(id, payload) {
+      const r = await htdApi.put(`/tasks/${id}`, payload);
+      showToast('任务已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    async deleteTask(id) {
+      await htdApi.del(`/tasks/${id}`);
+      showToast('任务已删除', 'success');
+      await this.refreshAll();
+    },
+
+    async toggleTask(id) {
+      return htdApi.post(`/tasks/${id}/toggle`);
+    },
+
+    // ============ 开发项目模块 ============
+    async fetchDevProjects(query = {}) {
+      return htdApi.get('/dev-projects', query);
+    },
+    async createDevProject(payload) {
+      const r = await htdApi.post('/dev-projects', payload);
+      showToast('开发项目已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateDevProject(id, payload) {
+      const r = await htdApi.put(`/dev-projects/${id}`, payload);
+      showToast('开发项目已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteDevProject(id) {
+      await htdApi.del(`/dev-projects/${id}`);
+      showToast('开发项目已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // ============ 代码片段模块 ============
+    async fetchDevSnippets(query = {}) {
+      return htdApi.get('/dev-snippets', query);
+    },
+    async createDevSnippet(payload) {
+      const r = await htdApi.post('/dev-snippets', payload);
+      showToast('代码片段已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateDevSnippet(id, payload) {
+      const r = await htdApi.put(`/dev-snippets/${id}`, payload);
+      showToast('代码片段已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteDevSnippet(id) {
+      await htdApi.del(`/dev-snippets/${id}`);
+      showToast('代码片段已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // ============ 开发问题模块 ============
+    async fetchDevIssues(query = {}) {
+      return htdApi.get('/dev-issues', query);
+    },
+    async createDevIssue(payload) {
+      const r = await htdApi.post('/dev-issues', payload);
+      showToast('问题记录已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateDevIssue(id, payload) {
+      const r = await htdApi.put(`/dev-issues/${id}`, payload);
+      showToast('问题记录已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteDevIssue(id) {
+      await htdApi.del(`/dev-issues/${id}`);
+      showToast('问题记录已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // ============ 学习记录模块 ============
+    async fetchStudyRecords(query = {}) {
+      return htdApi.get('/study-records', query);
+    },
+    async fetchStudyStats() {
+      return htdApi.get('/study-records/stats');
+    },
+    async createStudyRecord(payload) {
+      const r = await htdApi.post('/study-records', payload);
+      showToast('学习记录已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateStudyRecord(id, payload) {
+      const r = await htdApi.put(`/study-records/${id}`, payload);
+      showToast('学习记录已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteStudyRecord(id) {
+      await htdApi.del(`/study-records/${id}`);
+      showToast('学习记录已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // ============ 待学清单模块 ============
+    async fetchStudyPendings(query = {}) {
+      return htdApi.get('/study-pendings', query);
+    },
+    async createStudyPending(payload) {
+      const r = await htdApi.post('/study-pendings', payload);
+      showToast('待学资源已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateStudyPending(id, payload) {
+      const r = await htdApi.put(`/study-pendings/${id}`, payload);
+      showToast('待学资源已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteStudyPending(id) {
+      await htdApi.del(`/study-pendings/${id}`);
+      showToast('待学资源已删除', 'success');
+      await this.refreshAll();
+    },
+    async completeStudyPending(id, payload) {
+      const r = await htdApi.post(`/study-pendings/${id}/complete`, payload);
+      showToast('已标记为已学习并创建学习记录', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 娱乐内容模块 ============
+    async fetchEntertainments(query = {}) {
+      return htdApi.get('/entertainments', query);
+    },
+    async fetchEntertainmentRecommend() {
+      return htdApi.get('/entertainments/recommend');
+    },
+    async fetchEntertainmentStatusStats() {
+      return htdApi.get('/entertainments/status-stats');
+    },
+    async createEntertainment(payload) {
+      const r = await htdApi.post('/entertainments', payload);
+      showToast('娱乐内容已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateEntertainment(id, payload) {
+      const r = await htdApi.put(`/entertainments/${id}`, payload);
+      showToast('娱乐内容已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteEntertainment(id) {
+      await htdApi.del(`/entertainments/${id}`);
+      showToast('娱乐内容已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // ============ 复盘模块 ============
+    async fetchReviews(query = {}) {
+      return htdApi.get('/reviews', query);
+    },
+    async fetchReviewDetail(id) {
+      return htdApi.get(`/reviews/${id}`);
+    },
+    async createReview(payload) {
+      const r = await htdApi.post('/reviews', payload);
+      showToast('复盘已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateReview(id, payload) {
+      const r = await htdApi.put(`/reviews/${id}`, payload);
+      showToast('复盘已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteReview(id) {
+      await htdApi.del(`/reviews/${id}`);
+      showToast('复盘已删除', 'success');
+      await this.refreshAll();
+    },
+    async createCurrentWeekReview(payload = {}) {
+      const r = await htdApi.post('/reviews/current-week', payload);
+      showToast(r.created === false ? '本周周复盘已存在' : '本周周复盘已生成', 'success');
+      return r;
+    },
+
+    // ============ 凭据保险箱模块 ============
+    async fetchSecrets(query = {}) {
+      return htdApi.get('/secrets', query);
+    },
+    async fetchSecretTypeStats() {
+      return htdApi.get('/secrets/type-stats');
+    },
+    async createSecret(payload) {
+      const r = await htdApi.post('/secrets', payload);
+      showToast('凭据已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateSecret(id, payload) {
+      const r = await htdApi.put(`/secrets/${id}`, payload);
+      showToast('凭据已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteSecret(id) {
+      await htdApi.del(`/secrets/${id}`);
+      showToast('凭据已删除', 'success');
+      await this.refreshAll();
+    },
+
+    // ============ 部署记录模块 ============
+    async fetchDeployments(query = {}) {
+      return htdApi.get('/deployments', query);
+    },
+    async fetchDeploymentEnvStats() {
+      return htdApi.get('/deployments/env-stats');
+    },
+    async createDeployment(payload) {
+      const r = await htdApi.post('/deployments', payload);
+      showToast('部署记录已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateDeployment(id, payload) {
+      const r = await htdApi.put(`/deployments/${id}`, payload);
+      showToast('部署记录已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteDeployment(id) {
+      await htdApi.del(`/deployments/${id}`);
+      showToast('部署记录已删除', 'success');
+      await this.refreshAll();
+    },
+  },
+});
+
+window.useDataStore = useDataStore;
