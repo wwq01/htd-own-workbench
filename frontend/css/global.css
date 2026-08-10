@@ -1,61 +1,64 @@
 /* ============================================================
-   荒天帝工作台 - 全局样式
+   荒天帝工作台 - 全局样式（Liquid Glass 重构版）
    包含：CSS 重置、CSS 变量（视觉设计令牌）、栅格工具类、通用布局类
-   完整对齐 PRD 第十一章视觉设计规范
+   完全对标 macOS 天气 APP 的液态玻璃风格（暗/亮双主题）
+   仅修改 .css，不改动任何 .js / .html / 业务 class 名
    ============================================================ */
 
-/* ===== CSS 变量定义（视觉设计令牌） ===== */
+/* ===== CSS 变量定义（视觉设计令牌 - 暗色为默认） ===== */
 :root {
-  /* --- 背景分层色（从深到浅） --- */
-  --bg-deepest: #0B1220;       /* 最深层：左侧导航栏、顶部全局栏 */
-  --bg-page: #0F172A;          /* 页面底色：主内容区背景 */
-  --bg-card: #1E293B;          /* 卡片/弹窗/输入框背景 */
-  --bg-hover: #273449;         /* 悬浮/hover/选中态背景 */
+  /* --- 背景分层色（玻璃化：从深到浅） --- */
+  --bg-deepest: #0B1220;            /* 页面最底层（body 渐变底色兜底） */
+  --bg-page: rgba(13, 18, 32, 0.55);/* 内容区底：半透明，透出背景墙 */
+  --bg-card: rgba(255, 255, 255, 0.10); /* 卡片玻璃化（半透明白） */
+  --bg-hover: rgba(255, 255, 255, 0.16);/* hover 玻璃态（更亮一点） */
+  --bg-tertiary: rgba(255, 255, 255, 0.06); /* 三级背景（次级容器/已办） */
 
-  /* --- 文字色（四级） --- */
-  --text-primary: #F1F5F9;     /* 一级文字：标题、核心数据 */
-  --text-secondary: #94A3B8;   /* 二级文字：正文、辅助说明 */
-  --text-tertiary: #64748B;    /* 三级文字：备注、时间 */
-  --text-disabled: #475569;    /* 禁用/失效 */
+  /* --- 文字色（四级，保持可读性） --- */
+  --text-primary: #F1F5F9;
+  --text-secondary: rgba(241, 245, 249, 0.72);
+  --text-tertiary: #94A3B8;
+  --text-disabled: #475569;
 
-  /* --- 品牌/强调色 --- */
-  --color-primary: #3B82F6;    /* 主强调色：主按钮、选中态、进度条 */
-  --color-primary-hover: #357AED; /* hover 加深 */
+  /* --- 品牌/强调色（更通透蓝，去网页感） --- */
+  --color-primary: #5B8DEF;
+  --color-primary-hover: #4A7CE0;
 
   /* --- 功能状态色 --- */
-  --color-success: #10B981;    /* 成功/完成 */
-  --color-warning: #F59E0B;    /* 警告/临近 */
-  --color-danger: #EF4444;     /* 危险/删除 */
-  --color-info: #6366F1;       /* 信息/常规 */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --color-info: #6366F1;
 
-  /* --- 标签专属色（项目阶段） --- */
-  --tag-requirement: #64748B;  /* 需求沟通 - 灰色 */
-  --tag-proposal: #3B82F6;     /* 方案撰写 - 蓝色 */
-  --tag-poc: #8B5CF6;          /* POC演示 - 紫色 */
-  --tag-bidding: #F97316;      /* 投标答辩 - 橙色 */
-  --tag-delivery: #06B6D4;     /* 交付跟进 - 青色 */
-  --tag-closed: #10B981;       /* 项目结项 - 绿色 */
+  /* --- 标签专属色（项目阶段 6 色，玻璃化用 rgba 派生） --- */
+  --tag-requirement: #64748B;
+  --tag-proposal: #3B82F6;
+  --tag-poc: #8B5CF6;
+  --tag-bidding: #F97316;
+  --tag-delivery: #06B6D4;
+  --tag-closed: #10B981;
 
-  /* --- 边框色 --- */
-  --border-default: #334155;   /* 默认边框 */
-  --border-hover: #3B82F6;     /* hover/聚焦边框 */
+  /* --- 边框色（玻璃描边：白色细线 + 内高光） --- */
+  --border-default: rgba(255, 255, 255, 0.16);
+  --border-hover: #5B8DEF;
 
-  /* --- 阴影 --- */
-  --shadow-modal: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.4);
+  /* --- 阴影（玻璃投影：内高光 + 外扩散） --- */
+  --shadow-modal: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 8px 30px rgba(0, 0, 0, 0.28);
+  --shadow-dropdown: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 20px rgba(0, 0, 0, 0.25);
 
-  /* --- 圆角 --- */
-  --radius-sm: 4px;
-  --radius-base: 6px;          /* 统一圆角 */
-  --radius-lg: 8px;
+  /* --- 圆角（放大，更圆润） --- */
+  --radius-sm: 6px;
+  --radius-base: 12px;              /* 由 6 改 12 */
+  --radius-md: 16px;                /* 新增：中面板 */
+  --radius-lg: 22px;                /* 由 8 改 22 */
   --radius-full: 9999px;
 
   /* --- 字号 --- */
-  --font-size-xl: 24px;        /* 大数字统计、页面大标题 */
-  --font-size-lg: 18px;        /* 模块页面标题、卡片主标题 */
-  --font-size-md: 16px;        /* 二级标题、弹窗标题 */
-  --font-size-base: 14px;      /* 正文内容、列表条目、按钮 */
-  --font-size-sm: 12px;        /* 辅助文字、时间、标签 */
+  --font-size-xl: 24px;
+  --font-size-lg: 18px;
+  --font-size-md: 16px;
+  --font-size-base: 14px;
+  --font-size-sm: 12px;
 
   /* --- 字重 --- */
   --font-weight-semibold: 600;
@@ -91,21 +94,41 @@
   /* --- 过渡 --- */
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
+
+  /* ===== Liquid Glass 专用令牌（仅在 :root 声明一次） ===== */
+  --glass-bg:        rgba(255, 255, 255, 0.10);
+  --glass-bg-strong: rgba(255, 255, 255, 0.16);
+  --glass-border:    rgba(255, 255, 255, 0.18);
+  --glass-highlight: rgba(255, 255, 255, 0.22);
+  --glass-blur:      20px;
+  --glass-saturate:  160%;
+  /* @supports 回退用的实色（不支持 backdrop-filter 时兜底） */
+  --glass-fallback:  rgba(30, 41, 59, 0.92);
 }
 
+/* ===== 亮色主题令牌重映射 ===== */
 html[data-theme="light"] {
   --bg-deepest: #E2E8F0;
-  --bg-page: #F8FAFC;
-  --bg-card: #FFFFFF;
-  --bg-hover: #EFF6FF;
+  --bg-page: rgba(255, 255, 255, 0.55);
+  --bg-card: rgba(255, 255, 255, 0.65);
+  --bg-hover: rgba(255, 255, 255, 0.85);
+  --bg-tertiary: rgba(15, 23, 42, 0.04);
   --text-primary: #0F172A;
-  --text-secondary: #475569;
+  --text-secondary: rgba(15, 23, 42, 0.78);
   --text-tertiary: #64748B;
   --text-disabled: #94A3B8;
-  --border-default: #CBD5E1;
-  --border-hover: #3B82F6;
-  --shadow-modal: 0 4px 12px rgba(15, 23, 42, 0.16);
-  --shadow-dropdown: 0 4px 12px rgba(15, 23, 42, 0.14);
+  --color-primary: #2F6BEE;
+  --color-primary-hover: #1F5BD9;
+  --border-default: rgba(15, 23, 42, 0.10);
+  --border-hover: #2F6BEE;
+  --shadow-modal: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 8px 30px rgba(15, 23, 42, 0.16);
+  --shadow-dropdown: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 6px 20px rgba(15, 23, 42, 0.14);
+  /* 亮色 glass 令牌：白磨砂 + 深色细描边 */
+  --glass-bg:        rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border:    rgba(15, 23, 42, 0.10);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-fallback:  rgba(255, 255, 255, 0.92);
 }
 
 /* ===== CSS 重置 ===== */
@@ -121,28 +144,44 @@ html, body {
   overflow: hidden;
 }
 
+/* ===== 背景墙（液态玻璃能透出底色的前提） ===== */
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-normal);
   line-height: var(--line-height-body);
   color: var(--text-secondary);
-  background-color: var(--bg-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 暗色背景墙：左下青光斑 + 右上紫光斑 + 对角线渐变 */
+  background-color: var(--bg-deepest);
+  background-image:
+    radial-gradient(60% 50% at 80% 10%, rgba(124, 92, 255, 0.55), transparent 60%),
+    radial-gradient(50% 45% at 12% 85%, rgba(56, 189, 248, 0.45), transparent 60%),
+    linear-gradient(135deg, #0B1220 0%, #2A1F45 40%, #123A4F 75%, #0B1E2A 100%);
+  background-attachment: fixed;
 }
 
-/* 滚动条样式 */
+/* 亮色背景墙：浅蓝→浅紫→浅青 渐变 + 弱光斑 */
+html[data-theme="light"] body {
+  background-color: #EEF2FB;
+  background-image:
+    radial-gradient(60% 50% at 80% 10%, rgba(150, 120, 255, 0.30), transparent 60%),
+    radial-gradient(50% 45% at 12% 85%, rgba(120, 200, 255, 0.28), transparent 60%),
+    linear-gradient(135deg, #EEF2FB 0%, #E8E4F7 40%, #E2F1F7 75%, #EAF4F0 100%);
+}
+
+/* 滚动条样式（玻璃化） */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-default);
-  border-radius: 3px;
+  background: var(--glass-border);
+  border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
@@ -279,7 +318,7 @@ img {
 .font-medium { font-weight: var(--font-weight-medium); }
 .font-normal { font-weight: var(--font-weight-normal); }
 
-/* 背景色工具类 */
+/* 背景色工具类（指向玻璃化令牌） */
 .bg-deepest { background-color: var(--bg-deepest); }
 .bg-page { background-color: var(--bg-page); }
 .bg-card { background-color: var(--bg-card); }
@@ -315,7 +354,7 @@ img {
   animation: scaleIn var(--transition-base);
 }
 
-/* ===== Toast 提示样式 ===== */
+/* ===== Toast 提示样式（玻璃化） ===== */
 .htd-toast-container {
   position: fixed;
   top: 20px;
@@ -330,11 +369,13 @@ img {
 
 .htd-toast {
   padding: 10px 20px;
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-base);
   color: var(--text-primary);
-  background: var(--bg-card);
-  border: 1px solid var(--border-default);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-modal);
   animation: fadeIn var(--transition-fast);
   pointer-events: auto;
@@ -343,14 +384,67 @@ img {
 .htd-toast--success {
   border-color: var(--color-success);
   color: var(--color-success);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .htd-toast--error {
   border-color: var(--color-danger);
   color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.12);
 }
 
 .htd-toast--warning {
   border-color: var(--color-warning);
   color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* ===== @supports 兜底（不支持 backdrop-filter 时用实色） ===== */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* 任何带玻璃质感的容器，在不支持环境下降级为不透明实色，保证可读 */
+  .htp-card,
+  .htp-modal,
+  .htp-input,
+  .htp-textarea,
+  .htp-select,
+  .htp-btn--secondary,
+  .htp-tabs,
+  .app-sidebar,
+  .app-main,
+  .app-topbar,
+  .htp-filter-bar,
+  .htp-list-item,
+  .htp-progress,
+  .list-container,
+  .list-header,
+  .info-block,
+  .milestone-item,
+  .task-item,
+  .project-card,
+  .project-card--active,
+  .project-detail__header,
+  .stat-card,
+  .htd-toast,
+  .secret-card,
+  .deploy-card,
+  .review-card,
+  .ent-card,
+  .ent-recommend,
+  .ent-home-card,
+  .todo-list-item,
+  .htd-pagination__btn,
+  .review-auto-data,
+  .secret-card__content,
+  .ent-home-recommend,
+  .deploy-card__pre,
+  .secret-notice,
+  .data-stat-card,
+  .backup-list__item,
+  .security-notice,
+  .htp-modal-overlay {
+    background-color: var(--glass-fallback);
+  }
+  .htp-modal-overlay {
+    background-color: rgba(15, 23, 42, 0.85);
+  }
 }
