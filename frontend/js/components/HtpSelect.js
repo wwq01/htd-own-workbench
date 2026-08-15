@@ -5,8 +5,13 @@
  *   1. 原生 option 下拉面板无法样式化（操作系统级控件）
  *   2. 与 Liquid Glass 毛玻璃视觉体系不兼容
  *
+ * 层叠修复（V1.2.1）：
+ *   原面板 position:absolute 挂在组件内，会被外层玻璃卡片的 backdrop-filter 层叠上下文
+ *   困住，溢出后被后续兄弟卡片盖住（"下拉框在别的框下面"）。改为 teleport 到 body +
+ *   position:fixed 按触发器坐标定位，彻底脱离任何祖先层叠上下文与 overflow 裁切。
+ *
  * 交互：点击触发器切换面板 / 点击选项选中并关闭 / 点击外部关闭
- * 键盘：↑↓ 导航 / Enter 选中 / Esc 关闭
+ * 键盘：↑↓ 导航 / Enter 选中（展开态）/ Esc 关闭
  */
 const HtpSelect = {
   name: 'HtpSelect',
@@ -33,6 +38,14 @@ const HtpSelect = {
     return {
       isOpen: false,
       focusedIndex: -1,
+      // 面板固定定位坐标（teleport 到 body 后用 position:fixed 贴住触发器）
+      panelStyle: {
+        position: 'fixed',
+        top: '0px',
+        left: '0px',
+        width: 'auto',
+        zIndex: '9999',
+      },
     };
   },
   computed: {
@@ -54,20 +67,31 @@ const HtpSelect = {
   },
   beforeUnmount: function () {
     document.removeEventListener('click', this._closeHandler);
+    this.removeRepositionListeners();
   },
   methods: {
+    open: function () {
+      if (this.disabled || this.isOpen) return;
+      this.isOpen = true;
+      this.focusedIndex = this.modelValue
+        ? this.options.findIndex(function (o) { return o.value === this.modelValue; }.bind(this))
+        : -1;
+      this.updatePanelPosition();
+      this.addRepositionListeners();
+    },
     toggle: function () {
       if (this.disabled) return;
-      this.isOpen = !this.isOpen;
       if (this.isOpen) {
-        this.focusedIndex = this.modelValue
-          ? this.options.findIndex(function (o) { return o.value === this.modelValue; }.bind(this))
-          : -1;
+        this.close();
+      } else {
+        this.open();
       }
     },
     close: function () {
+      if (!this.isOpen) return;
       this.isOpen = false;
       this.focusedIndex = -1;
+      this.removeRepositionListeners();
     },
     selectOption: function (opt) {
       if (this.disabled) return;
@@ -75,22 +99,55 @@ const HtpSelect = {
       this.$emit('change', opt.value);
       this.close();
     },
+    // 按触发器在视口中的位置计算面板固定坐标
+    updatePanelPosition: function () {
+      if (!this.isOpen || !this.$refs.trigger) return;
+      var rect = this.$refs.trigger.getBoundingClientRect();
+      this.panelStyle = {
+        position: 'fixed',
+        top: (rect.bottom + 6) + 'px',
+        left: rect.left + 'px',
+        width: rect.width + 'px',
+        zIndex: '9999',
+      };
+    },
+    // 页面/弹窗滚动、窗口缩放时让面板始终贴住触发器
+    addRepositionListeners: function () {
+      this._reposition = this.updatePanelPosition.bind(this);
+      window.addEventListener('scroll', this._reposition, true);
+      window.addEventListener('resize', this._reposition);
+    },
+    removeRepositionListeners: function () {
+      if (this._reposition) {
+        window.removeEventListener('scroll', this._reposition, true);
+        window.removeEventListener('resize', this._reposition);
+        this._reposition = null;
+      }
+    },
     handleTriggerKeydown: function (e) {
       if (this.disabled) return;
       switch (e.key) {
         case 'Enter':
+          e.preventDefault();
+          // 展开态下 Enter 直接选中高亮项（修复此前 Enter 误关闭）
+          if (this.isOpen && this.focusedIndex >= 0 && this.focusedIndex < this.options.length) {
+            this.selectOption(this.options[this.focusedIndex]);
+          } else {
+            this.toggle();
+          }
+          break;
         case ' ':
           e.preventDefault();
           this.toggle();
           break;
         case 'ArrowDown':
           e.preventDefault();
-          if (!this.isOpen) { this.isOpen = true; }
+          if (!this.isOpen) { this.open(); }
           this.moveFocus(1);
           break;
         case 'ArrowUp':
           e.preventDefault();
-          if (!this.isOpen) { this.isOpen = true; }
+          if (!this.isOpen) { this.open(); }
           this.moveFocus(-1);
           break;
         case 'Escape':
@@ -132,9 +189,10 @@ const HtpSelect = {
       }
     },
     handleOutsideClick: function (e) {
-      if (!this.$el.contains(e.target)) {
-        this.close();
-      }
+      // 面板已 teleport 到 body，不在 $el 内，需单独判断
+      if (this.$el.contains(e.target)) return;
+      if (this.$refs.panel && this.$refs.panel.contains(e.target)) return;
+      this.close();
     },
     focusItem: function (index) {
       this.focusedIndex = index;
@@ -164,37 +222,40 @@ const HtpSelect = {
           <path d="M6 9l6 6 6-6" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
         </svg>\
       </div>\
-      <ul\
-        v-if="isOpen"\
-        ref="panel"\
-        class="htp-select__panel"\
-        role="listbox"\
-        @keydown="handlePanelKeydown"\
-      >\
-        <li\
-          v-for="(opt, index) in options"\
-          :key="opt.value"\
-          class="htp-select__opt"\
-          :class="{\
-            \'htp-select__opt--focused\' : index === focusedIndex,\
-            \'htp-select__opt--selected\' : opt.value === modelValue\
-          }"\
-          role="option"\
-          :aria-selected="opt.value === modelValue"\
-          @click.stop="selectOption(opt)"\
-          @mousemove="focusItem(index)"\
+      <teleport to="body">\
+        <ul\
+          v-if="isOpen"\
+          ref="panel"\
+          class="htp-select__panel"\
+          :style="panelStyle"\
+          role="listbox"\
+          @keydown="handlePanelKeydown"\
         >\
-          <svg\
-            v-if="opt.value === modelValue"\
-            class="htp-select__check"\
-            width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"\
+          <li\
+            v-for="(opt, index) in options"\
+            :key="opt.value"\
+            class="htp-select__opt"\
+            :class="{\
+              \'htp-select__opt--focused\' : index === focusedIndex,\
+              \'htp-select__opt--selected\' : opt.value === modelValue\
+            }"\
+            role="option"\
+            :aria-selected="opt.value === modelValue"\
+            @click.stop="selectOption(opt)"\
+            @mousemove="focusItem(index)"\
           >\
-            <rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="#3D6EFF" fill-opacity="0.15" stroke="#3D6EFF" stroke-width="1.5"/>\
-            <path d="M7 12l3 3 7-7" stroke="#3D6EFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
-          </svg>\
-          <span class="htp-select__opt-label">{{ opt.label }}</span>\
-        </li>\
-      </ul>\
+            <svg\
+              v-if="opt.value === modelValue"\
+              class="htp-select__check"\
+              width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"\
+            >\
+              <rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="#3D6EFF" fill-opacity="0.15" stroke="#3D6EFF" stroke-width="1.5"/>\
+              <path d="M7 12l3 3 7-7" stroke="#3D6EFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
+            </svg>\
+            <span class="htp-select__opt-label">{{ opt.label }}</span>\
+          </li>\
+        </ul>\
+      </teleport>\
     </div>',
 };
 

@@ -369,13 +369,12 @@
   transform: rotate(180deg);
 }
 
-/* ===== 下拉面板 - 毛玻璃浮层（blur 24 + 深阴影 + 圆角16） ===== */
+/* ===== 下拉面板 - 毛玻璃浮层（blur 24 + 深阴影 + 圆角16） =====
+   位置由组件按触发器坐标以 position:fixed 内联写入（teleport 到 body），
+   脱离任何祖先层叠上下文与 overflow 裁切，z-index 抬到最高层避免被兄弟卡片遮挡。 */
 .htp-select__panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 1000;
-  min-width: 100%;
+  position: fixed;
+  z-index: 9999;
   max-height: 240px;
   overflow-y: auto;
   margin: 0;
