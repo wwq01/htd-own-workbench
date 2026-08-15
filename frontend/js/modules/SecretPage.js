@@ -133,8 +133,8 @@ const SecretPage = {
 
     // ============ 辅助 ============
     function typeIcon(t) {
-      const map = { '环境账号': '🖥️', '平台账号': '🏢', 'API密钥': '🔑', '授权码': '📋', '其他': '📦' };
-      return map[t] || '📦';
+      const map = { '环境账号': 'monitor', '平台账号': 'building', 'API密钥': 'key', '授权码': 'clipboard', '其他': 'package' };
+      return window.htdIcon(map[t] || 'package');
     }
     function isExpiringSoon(dateStr) {
       if (!dateStr) return false;
@@ -162,14 +162,14 @@ const SecretPage = {
     <div class="list-page">
       <!-- 安全提示 -->
       <div class="secret-notice">
-        <span>⚠ 注意：第一版为明文存储，请勿存放极高敏感信息（如银行密码等）</span>
+        <span class="secret-notice__icon" v-html="htdIcon('warning', { size: 16 })"></span><span>注意：第一版为明文存储，请勿存放极高敏感信息（如银行密码等）</span>
       </div>
 
       <!-- 顶部：类型统计 -->
       <div class="secret-topbar">
         <div class="secret-stats">
           <span class="secret-stat-item" v-for="(count, key) in typeStats" :key="key">
-            <htp-tag type="info">{{ typeIcon(key) }} {{ key }}</htp-tag>
+            <htp-tag type="info"><span class="tag-icon" v-html="typeIcon(key)"></span> {{ key }}</htp-tag>
             <span class="secret-stat-num">{{ count }}</span>
           </span>
         </div>
@@ -195,7 +195,7 @@ const SecretPage = {
       <div v-else class="secret-grid">
         <div class="secret-card" v-for="item in list" :key="item.id">
           <div class="secret-card__header">
-            <span class="secret-card__icon">{{ typeIcon(item.type) }}</span>
+            <span class="secret-card__icon" v-html="typeIcon(item.type)"></span>
             <span class="secret-card__name">{{ item.name }}</span>
             <htp-tag v-if="isExpiringSoon(item.expiryDate)" type="danger">即将过期</htp-tag>
           </div>

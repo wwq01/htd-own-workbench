@@ -140,8 +140,8 @@ const EntertainmentPage = {
       return 'warning'; // 想看
     }
     function typeIcon(t) {
-      const map = { 游戏: '🎮', 番剧: '📺', 剧集: '🎬', 书籍: '📚', 其他: '🎲' };
-      return map[t] || '🎲';
+      const map = { 游戏: 'gamepad', 番剧: 'tv', 剧集: 'film', 书籍: 'book', 其他: 'dice' };
+      return window.htdIcon(map[t] || 'dice', { size: 18 });
     }
     function starsHtml(rating) {
       const r = parseInt(rating, 10) || 0;
@@ -174,14 +174,14 @@ const EntertainmentPage = {
           </span>
         </div>
         <div class="ent-actions">
-          <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="rollRecommend">🎲 随机推荐</button>
+          <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="rollRecommend"><span class="ent-card__icon" v-html="htdIcon('dice',{size:16})"></span> 随机推荐</button>
         </div>
       </div>
 
       <!-- 随机推荐结果 -->
       <div v-if="recommend" class="ent-recommend">
         <span class="text-tertiary">今日推荐：</span>
-        <span class="text-primary font-medium">{{ typeIcon(recommend.type) }} {{ recommend.name }}</span>
+        <span class="text-primary font-medium"><span class="ent-card__icon" v-html="typeIcon(recommend.type)"></span> {{ recommend.name }}</span>
         <htp-tag :type="statusType(recommend.status)" class="ml-sm">{{ recommend.status }}</htp-tag>
         <button class="htp-btn htp-btn--text htp-btn--sm ml-sm" @click="recommend = null">收起</button>
       </div>
@@ -209,7 +209,7 @@ const EntertainmentPage = {
       <div v-else class="ent-grid">
         <div class="ent-card" v-for="item in list" :key="item.id">
           <div class="ent-card__header">
-            <span class="ent-card__icon">{{ typeIcon(item.type) }}</span>
+            <span class="ent-card__icon" v-html="typeIcon(item.type)"></span>
             <span class="ent-card__name">{{ item.name }}</span>
             <htp-tag :type="statusType(item.status)">{{ item.status }}</htp-tag>
           </div>

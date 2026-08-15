@@ -22,8 +22,8 @@
   background-color: var(--bg-card);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-shell)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-shell)) saturate(var(--glass-saturate));
   box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 32px rgba(0, 0, 0, 0.20);
   display: flex;
   flex-direction: column;
@@ -53,10 +53,7 @@
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   white-space: nowrap;
-  background: linear-gradient(135deg, #F1F5F9 0%, #5B8DEF 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-primary);
 }
 
 .app-sidebar__nav {
@@ -130,8 +127,8 @@
   background-color: var(--bg-page);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-shell)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-shell)) saturate(var(--glass-saturate));
   box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 32px rgba(0, 0, 0, 0.20);
   overflow: hidden;
 }
@@ -364,7 +361,7 @@
 .project-card--active {
   border-color: var(--color-primary);
   background-color: var(--glass-bg-strong);
-  box-shadow: 0 0 0 2px rgba(91, 141, 239, 0.25),
+  box-shadow: 0 0 0 2px var(--focus-ring-soft),
               inset 0 1px 0 var(--glass-highlight);
 }
 
@@ -604,8 +601,8 @@
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-base);
-  background-color: rgba(245, 158, 11, 0.10);
-  border: 1px solid rgba(245, 158, 11, 0.30);
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: var(--radius-md);
   color: var(--color-warning);
   font-size: var(--font-size-sm);
@@ -1120,10 +1117,10 @@
    ============================================================ */
 .secret-notice {
   padding: var(--spacing-sm) var(--spacing-base);
-  background-color: rgba(254, 243, 199, 0.10);
-  border: 1px solid rgba(252, 211, 77, 0.40);
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: var(--radius-md);
-  color: #FCD34D;
+  color: var(--color-warning);
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-base);
   -webkit-backdrop-filter: blur(12px);
@@ -1362,7 +1359,7 @@
 }
 
 .deploy-card__pre--code {
-  color: #34D399;
+  color: var(--code-color);
   font-weight: 500;
 }
 

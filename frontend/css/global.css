@@ -5,6 +5,27 @@
    仅修改 .css，不改动任何 .js / .html / 业务 class 名
    ============================================================ */
 
+/* ===== 字体声明：打包 Sarasa Gothic SC（仅 Regular 400 / Bold 700） =====
+   字体文件位于 frontend/fonts/，由后端静态托管（/fonts/...）。
+   宪法约束：Sarasa 仅含 Regular/Bold，禁用 Medium(500)；故 --font-weight-medium:600 会回退到 Bold。
+   font-display: swap 避免大字体加载期间文字不可见（FOIT）；local() 给已安装用户省去下载。 */
+@font-face {
+  font-family: "Sarasa Gothic SC";
+  src: local("Sarasa Gothic SC"),
+       url("../fonts/SarasaGothicSC-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Sarasa Gothic SC";
+  src: local("Sarasa Gothic SC"),
+       url("../fonts/SarasaGothicSC-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ===== CSS 变量定义（视觉设计令牌 - 暗色为默认） ===== */
 :root {
   /* --- 背景分层色（玻璃化：从深到浅） --- */
@@ -62,7 +83,7 @@
 
   /* --- 字重 --- */
   --font-weight-semibold: 600;
-  --font-weight-medium: 500;
+  --font-weight-medium: 600;
   --font-weight-normal: 400;
 
   /* --- 间距（8px 栅格系统） --- */
@@ -85,7 +106,7 @@
   --list-row-height: 40px;
 
   /* --- 字体 --- */
-  --font-family: Inter, -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", sans-serif;
+  --font-family: "Sarasa Gothic SC", "Inter", -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", sans-serif;
 
   /* --- 行高 --- */
   --line-height-body: 1.5;
@@ -100,10 +121,28 @@
   --glass-bg-strong: rgba(255, 255, 255, 0.16);
   --glass-border:    rgba(255, 255, 255, 0.18);
   --glass-highlight: rgba(255, 255, 255, 0.22);
-  --glass-blur:      20px;
+  --glass-blur:      22px;       /* 卡片层默认（对齐锚点卡片 blur=22） */
+  --glass-blur-shell: 28px;      /* 外壳层：侧栏/主区/弹窗（对齐锚点外壳 blur=28） */
+  --glass-blur-panel: 18px;      /* 面板/次级容器：筛选栏/标签栏（对齐锚点面板 blur=18） */
+  --glass-blur-chip:  12px;      /* 小药丸/内联玻璃 */
   --glass-saturate:  160%;
   /* @supports 回退用的实色（不支持 backdrop-filter 时兜底） */
   --glass-fallback:  rgba(30, 41, 59, 0.92);
+
+  /* --- 焦点环令牌（统一主色外发光，消除散落 rgba） --- */
+  --focus-ring: rgba(91, 141, 239, 0.30);
+  --focus-ring-soft: rgba(91, 141, 239, 0.25);
+  --focus-ring-color: #5B8DEF;
+
+  /* --- 警示色语义令牌（背景/边框/文本，统一同色系） --- */
+  --warning-bg: rgba(245, 158, 11, 0.10);
+  --warning-border: rgba(245, 158, 11, 0.30);
+  --code-color: #34D399;
+
+  /* --- 背景墙令牌（分层光斑 + 对角渐变，令牌化消除裸 hex/rgba） --- */
+  --bg-spot-1: rgba(124, 92, 255, 0.50);   /* 锚点光斑1：紫 #7C5CFF @0.50 */
+  --bg-spot-2: rgba(34, 211, 238, 0.40);   /* 锚点光斑2：青 #22D3EE @0.40 */
+  --bg-gradient: linear-gradient(135deg, #1B1F4B 0%, #3A2A6E 40%, #1F5A8A 75%, #0E3A4F 100%);  /* 对齐锚点背景墙色相 */
 }
 
 /* ===== 亮色主题令牌重映射 ===== */
@@ -129,6 +168,11 @@ html[data-theme="light"] {
   --glass-border:    rgba(15, 23, 42, 0.10);
   --glass-highlight: rgba(255, 255, 255, 0.85);
   --glass-fallback:  rgba(255, 255, 255, 0.92);
+
+  /* 亮色背景墙令牌 */
+  --bg-spot-1: rgba(150, 120, 255, 0.30);
+  --bg-spot-2: rgba(120, 200, 255, 0.28);
+  --bg-gradient: linear-gradient(135deg, #EEF2FB 0%, #E8E4F7 40%, #E2F1F7 75%, #EAF4F0 100%);
 }
 
 /* ===== CSS 重置 ===== */
@@ -156,9 +200,9 @@ body {
   /* 暗色背景墙：左下青光斑 + 右上紫光斑 + 对角线渐变 */
   background-color: var(--bg-deepest);
   background-image:
-    radial-gradient(60% 50% at 80% 10%, rgba(124, 92, 255, 0.55), transparent 60%),
-    radial-gradient(50% 45% at 12% 85%, rgba(56, 189, 248, 0.45), transparent 60%),
-    linear-gradient(135deg, #0B1220 0%, #2A1F45 40%, #123A4F 75%, #0B1E2A 100%);
+    radial-gradient(60% 50% at 80% 10%, var(--bg-spot-1), transparent 60%),
+    radial-gradient(50% 45% at 12% 85%, var(--bg-spot-2), transparent 60%),
+    var(--bg-gradient);
   background-attachment: fixed;
 }
 
@@ -166,9 +210,9 @@ body {
 html[data-theme="light"] body {
   background-color: #EEF2FB;
   background-image:
-    radial-gradient(60% 50% at 80% 10%, rgba(150, 120, 255, 0.30), transparent 60%),
-    radial-gradient(50% 45% at 12% 85%, rgba(120, 200, 255, 0.28), transparent 60%),
-    linear-gradient(135deg, #EEF2FB 0%, #E8E4F7 40%, #E2F1F7 75%, #EAF4F0 100%);
+    radial-gradient(60% 50% at 80% 10%, var(--bg-spot-1), transparent 60%),
+    radial-gradient(50% 45% at 12% 85%, var(--bg-spot-2), transparent 60%),
+    var(--bg-gradient);
 }
 
 /* 滚动条样式（玻璃化） */
@@ -406,7 +450,8 @@ img {
   .htp-modal,
   .htp-input,
   .htp-textarea,
-  .htp-select,
+  .htp-select__trigger,
+  .htp-select__panel,
   .htp-btn--secondary,
   .htp-tabs,
   .app-sidebar,
@@ -447,4 +492,42 @@ img {
   .htp-modal-overlay {
     background-color: rgba(15, 23, 42, 0.85);
   }
+}
+
+/* ===== 动效降级（a11y 基线：尊重系统"减少动态效果"设置） ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 全局键盘焦点环（统一主色描边，覆盖未单独定义的可见焦点） */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+.htp-tab:focus-visible,
+.app-sidebar__nav-item:focus-visible,
+.htp-list-item:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+/* 统一语义图标（SVG）基础样式 */
+.htd-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.tag-icon,
+.secret-card__icon,
+.ent-card__icon,
+.deploy-card__icon,
+.secret-notice__icon,
+.ent-home-review-tip__icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }

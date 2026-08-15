@@ -405,7 +405,7 @@ const ProjectPage = {
 
         <div v-if="loading" class="empty-state">加载中...</div>
         <div v-else-if="projectList.length === 0" class="empty-state">
-          📭 暂无项目，点击「新建项目」开始
+          <span v-html="htdIcon('inbox',{size:18})"></span> 暂无项目，点击「新建项目」开始
         </div>
         <div v-else class="project-cards">
           <div
@@ -555,7 +555,7 @@ const ProjectPage = {
           <!-- 生成项目复盘 -->
           <div class="project-detail__footer mt-base">
             <button class="htp-btn htp-btn--primary" @click="requestGenerateReview">
-              📝 一键生成项目复盘
+              <span v-html="htdIcon('note',{size:16})"></span> 一键生成项目复盘
             </button>
           </div>
         </div>

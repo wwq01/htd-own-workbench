@@ -66,8 +66,8 @@ const HomePage = {
       } catch (e) { /* ignore */ }
     }
     function entertainmentTypeIcon(t) {
-      const map = { 游戏: '🎮', 番剧: '📺', 剧集: '🎬', 书籍: '📚', 其他: '🎲' };
-      return map[t] || '🎲';
+      const map = { 游戏: 'gamepad', 番剧: 'tv', 剧集: 'film', 书籍: 'book', 其他: 'dice' };
+      return window.htdIcon(map[t] || 'dice', { size: 18 });
     }
     function entertainmentWantTotal() {
       const stats = dataStore.statistics;
@@ -211,19 +211,19 @@ const HomePage = {
             </div>
             <div v-if="recommend" class="ent-home-recommend">
               <span class="text-tertiary text-sm">今日推荐：</span>
-              <span class="ent-home-recommend__name">{{ entertainmentTypeIcon(recommend.type) }} {{ recommend.name }}</span>
+              <span class="ent-home-recommend__name"><span v-html="entertainmentTypeIcon(recommend.type)"></span> {{ recommend.name }}</span>
             </div>
             <div v-else class="ent-home-recommend">
               <span class="text-tertiary text-sm">点击进入娱乐页查看随机推荐</span>
             </div>
-            <button class="htp-btn htp-btn--text htp-btn--sm mt-sm" @click.stop="loadRecommend">🎲 换一条</button>
+            <button class="htp-btn htp-btn--text htp-btn--sm mt-sm" @click.stop="loadRecommend"><span v-html="htdIcon('dice',{size:16})"></span> 换一条</button>
           </div>
         </htp-card>
 
         <!-- 复盘中心入口 -->
         <htp-card title="复盘与沉淀" class="ent-home-card" @click="goReview">
           <div class="ent-home-review-tip">
-            <div class="ent-home-review-tip__icon">📝</div>
+            <div class="ent-home-review-tip__icon" v-html="htdIcon('note',{size:20})"></div>
             <div>
               <div class="text-primary font-medium">周复盘 · 项目复盘</div>
               <div class="text-sm text-tertiary mt-xs">沉淀亮点、踩坑、可复用经验，自动统计本周数据</div>

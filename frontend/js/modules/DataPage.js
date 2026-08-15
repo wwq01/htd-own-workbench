@@ -285,8 +285,8 @@ const DataPage = {
       return 'default';
     }
     function envIcon(env) {
-      const map = { '演示环境': '🎭', '测试环境': '🧪', '生产环境': '🚀', '本地环境': '💻' };
-      return map[env] || '📦';
+      const map = { '演示环境': 'presentation', '测试环境': 'flask', '生产环境': 'rocket', '本地环境': 'laptop' };
+      return window.htdIcon(map[env] || 'package', { size: 16 });
     }
     async function copyText(text, label) {
       if (!text) { showToast('内容为空', 'warning'); return; }
@@ -336,7 +336,7 @@ const DataPage = {
         <div class="deploy-topbar">
           <div class="deploy-stats">
             <span class="deploy-stat-item" v-for="(count, key) in envStats" :key="key">
-              <htp-tag :type="envTagType(key)">{{ envIcon(key) }} {{ key }}</htp-tag>
+              <htp-tag :type="envTagType(key)"><span class="deploy-card__icon" v-html="envIcon(key)"></span> {{ key }}</htp-tag>
               <span class="deploy-stat-num">{{ count }}</span>
             </span>
           </div>
@@ -362,7 +362,7 @@ const DataPage = {
         <div v-else class="deploy-list">
           <div class="deploy-card" v-for="item in deployList" :key="item.id">
             <div class="deploy-card__header">
-              <span class="deploy-card__icon">{{ envIcon(item.envType) }}</span>
+              <span class="deploy-card__icon" v-html="envIcon(item.envType)"></span>
               <span class="deploy-card__name">{{ item.name }}</span>
               <htp-tag :type="envTagType(item.envType)">{{ item.envType }}</htp-tag>
             </div>

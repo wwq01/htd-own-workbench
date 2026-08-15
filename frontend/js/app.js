@@ -189,6 +189,9 @@ const App = {
 // ===== 创建 Vue 应用 =====
 const app = Vue.createApp(App);
 
+// 暴露统一语义图标函数给所有模板（替代 emoji，遵守 P0-1 红线）
+app.config.globalProperties.htdIcon = window.htdIcon;
+
 // 安装 Pinia
 app.use(window.htdPinia);
 
