@@ -36,25 +36,27 @@ const HtpModal = {
   },
   emits: ['update:visible', 'confirm', 'cancel'],
   template: `
-    <div v-if="visible" class="htp-modal-overlay" @click.self="handleOverlayClick">
-      <div class="htp-modal" :style="{ width: width }">
-        <div class="htp-modal__header">
-          <span class="htp-modal__title">{{ title }}</span>
-          <button class="htp-modal__close" @click="handleClose">&times;</button>
-        </div>
-        <div class="htp-modal__body">
-          <slot></slot>
-        </div>
-        <div v-if="showFooter" class="htp-modal__footer">
-          <slot name="footer">
-            <button class="htp-btn htp-btn--secondary" @click="handleClose">{{ cancelText }}</button>
-            <button class="htp-btn htp-btn--primary" :disabled="confirmLoading" @click="handleConfirm">
-              {{ confirmLoading ? '处理中...' : confirmText }}
-            </button>
-          </slot>
+    <teleport to="body">
+      <div v-if="visible" class="htp-modal-overlay" @click.self="handleOverlayClick">
+        <div class="htp-modal" :style="{ width: width }">
+          <div class="htp-modal__header">
+            <span class="htp-modal__title">{{ title }}</span>
+            <button class="htp-modal__close" @click="handleClose">&times;</button>
+          </div>
+          <div class="htp-modal__body">
+            <slot></slot>
+          </div>
+          <div v-if="showFooter" class="htp-modal__footer">
+            <slot name="footer">
+              <button class="htp-btn htp-btn--secondary" @click="handleClose">{{ cancelText }}</button>
+              <button class="htp-btn htp-btn--primary" :disabled="confirmLoading" @click="handleConfirm">
+                {{ confirmLoading ? '处理中...' : confirmText }}
+              </button>
+            </slot>
+          </div>
         </div>
       </div>
-    </div>
+    </teleport>
   `,
   methods: {
     handleClose() {

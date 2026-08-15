@@ -120,7 +120,7 @@
   background-color: rgba(15, 23, 42, 0.55);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -374,7 +374,7 @@
    脱离任何祖先层叠上下文与 overflow 裁切，z-index 抬到最高层避免被兄弟卡片遮挡。 */
 .htp-select__panel {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--z-dropdown);
   max-height: 240px;
   overflow-y: auto;
   margin: 0;
@@ -708,7 +708,7 @@ html[data-theme="light"] .htp-input[type="date"] {
   background-color: rgba(15, 23, 42, 0.45);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
-  z-index: 9999;
+  z-index: var(--z-command-palette);
   display: flex;
   align-items: flex-start;
   justify-content: center;

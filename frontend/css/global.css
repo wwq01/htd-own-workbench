@@ -116,6 +116,14 @@
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
 
+  /* --- 层级（z-index）令牌：浮层抬升顺序，避免层叠上下文撞车 --- */
+  --z-base: 1;                 /* 普通内容 / 页内吸顶条 */
+  --z-sticky: 100;             /* 模块内吸顶筛选栏 */
+  --z-modal: 1000;             /* 模态遮罩（须 teleport 到 body，脱离祖先层叠上下文） */
+  --z-dropdown: 2000;          /* 下拉面板（teleport 到 body，须高于模态，否则模态内下拉被遮） */
+  --z-command-palette: 3000;   /* 命令面板 Ctrl/Cmd+K（全局最高浮层之一） */
+  --z-toast: 4000;             /* 全局 Toast，永远最上层，错误提示不被任何浮层盖住 */
+
   /* ===== Liquid Glass 专用令牌（仅在 :root 声明一次） ===== */
   --glass-bg:        rgba(255, 255, 255, 0.10);
   --glass-bg-strong: rgba(255, 255, 255, 0.16);
@@ -404,7 +412,7 @@ img {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 8px;
