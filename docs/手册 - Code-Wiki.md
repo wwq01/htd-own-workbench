@@ -183,7 +183,7 @@ currentPage 由 router.js 根据 hash 匹配：
 ```
 d:\WorkSpace\荒天帝的APP\
 ├── backend/                       # Node.js 后端（分层架构）
-│   ├── package.json               # ES Module 项目，dev 脚本用 node --watch
+│   ├── package.json               # ES Module 项目，dev 脚本用 node 直接启动（无热重载）
 │   ├── .env                       # DATABASE_URL + NODE_ENV + HTD_PORT
 │   ├── prisma/
 │   │   └── schema.prisma          # 14 张业务表 + Prisma 模型定义
@@ -724,7 +724,7 @@ npm install
 npx prisma generate
 npx prisma db push
 
-# 4. 启动开发模式（带热重载）
+# 4. 启动开发模式
 npm run dev
 ```
 
@@ -749,7 +749,7 @@ cd D:\WorkSpace\荒天帝的APP\backend
 npm run dev
 ```
 
-> ⚠️ **必须用 `npm run dev`**（`node --watch`），不要用 `npm start`，否则修改代码不会自动重载。
+> 💡 `npm run dev` 与 `npm start` 等价（均为 `node src/server.js` 直接启动，**无热重载**）。修改代码后需手动重启进程（Ctrl+C 后重跑）。
 
 ### 12.4 验证服务正常
 
@@ -1020,17 +1020,17 @@ const config = {
 node -v  # 必须是 v24.x.x，v22 会导致 Prisma 兼容问题
 ```
 
-### 🔴 硬性约束 6：后端启动必须用 `npm run dev`
+### 🔴 硬性约束 6：后端启动用 `npm run dev` 或 `node src/server.js`
 
 ```bash
-# ✅ 正确（带热重载，文件变更自动重启）
+# ✅ 推荐：dev 是 start 的别名，二者等价
 npm run dev
-
-# ❌ 错误（不会热重载，修改代码不生效）
+# 或
 npm start
+# 二者均为 node src/server.js 直接启动，无热重载
 ```
 
-`dev` 脚本：`node --watch src/server.js`（Node 24 内置 watch）。
+`dev` 脚本：`node src/server.js`（**直接启动，无热重载**）。已弃用 `node --watch`：其在运行期写文件 / IDE 临时文件时会反复重启进程。历史文档（如阶段总结）中提及 --watch 的段落为弃用前认知，以本约束为准。
 
 ### 🔴 硬性约束 7：Node 版本/路径问题
 
