@@ -7,7 +7,7 @@ import { createMilestoneSchema, updateMilestoneSchema } from './milestone.schema
 import milestoneService from './milestone.service.js';
 import projectService from '../project/project.service.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 let testProjectId;
 

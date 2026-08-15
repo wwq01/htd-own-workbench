@@ -15,9 +15,13 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// 显式设置 DATABASE_URL（从 JS 配置读取，避免 .env 编码问题）
-const datasourceUrl = `file:${appConfig.dbPath}`;
-process.env.DATABASE_URL = datasourceUrl;
+// 数据源可切换：测试环境通过 HTD_TEST_DB_URL 注入隔离用的临时库，
+// 避免测试直接读写生产数据库（D:\荒天帝工作台\data\workbench.db）
+const datasourceUrl = process.env.HTD_TEST_DB_URL || `file:${appConfig.dbPath}`;
+// 仅当未显式设置时才回填 DATABASE_URL，避免覆盖测试注入的临时库地址
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = datasourceUrl;
+}
 
 // 全局单例标记
 const globalForPrisma = globalThis;

@@ -1,7 +1,9 @@
 /**
  * Vitest 配置
- * 使用真实数据库（D:\荒天帝工作台\data\workbench.db）做集成测试
- * 测试数据统一用 TEST_ 前缀，afterEach/afterAll 自动清理
+ * 测试隔离：由 test-setup.js 复制 prisma/template.db 到临时库，
+ * 并通过 HTD_TEST_DB_URL 注入，所有测试（含服务层单例）均读写该临时库，
+ * 绝不触碰生产数据库（D:\荒天帝工作台\data\workbench.db）。
+ * 测试数据统一用 TEST_ 前缀，afterEach/afterAll 自动清理。
  */
 import { defineConfig } from 'vitest/config';
 
@@ -15,7 +17,7 @@ export default defineConfig({
     testTimeout: 30000,
     // hook 超时 30s
     hookTimeout: 30000,
-    // 全局 setup
-    setupFiles: [],
+    // 全局 setup：注入隔离用临时数据库
+    setupFiles: ['./test-setup.js'],
   },
 });

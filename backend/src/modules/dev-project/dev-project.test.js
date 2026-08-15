@@ -7,7 +7,7 @@ import { createDevProjectSchema, updateDevProjectSchema } from './dev-project.sc
 import devProjectService from './dev-project.service.js';
 import { DEV_PROJECT_STATUS } from '../../common/constants/enums.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 
 describe('DevProject Schema 校验', () => {

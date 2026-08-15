@@ -7,7 +7,7 @@ import { createStudyRecordSchema, updateStudyRecordSchema } from './study-record
 import studyRecordService from './study-record.service.js';
 import { STUDY_TYPE } from '../../common/constants/enums.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 const TODAY = '2026-08-10';
 

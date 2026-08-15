@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import { createStudyPendingSchema, completeStudyPendingSchema } from './study-pending.schema.js';
 import studyPendingService from './study-pending.service.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 const TODAY = '2026-08-10';
 

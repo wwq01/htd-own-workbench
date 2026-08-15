@@ -7,7 +7,7 @@ import { createEntertainmentSchema, updateEntertainmentSchema } from './entertai
 import entertainmentService from './entertainment.service.js';
 import { ENTERTAINMENT_TYPE, ENTERTAINMENT_STATUS } from '../../common/constants/enums.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 
 describe('Entertainment Schema 校验', () => {

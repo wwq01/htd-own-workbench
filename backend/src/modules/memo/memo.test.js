@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import { createMemoSchema, updateMemoSchema } from './memo.schema.js';
 import memoService from './memo.service.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 
 describe('Memo Schema 校验', () => {

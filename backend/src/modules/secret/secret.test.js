@@ -13,7 +13,7 @@ import secretService from './secret.service.js';
 import { SECRET_TYPE } from '../../common/constants/enums.js';
 
 const prisma = new PrismaClient({
-  datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db',
+  datasourceUrl: process.env.HTD_TEST_DB_URL,
   log: ['error'],
 });
 

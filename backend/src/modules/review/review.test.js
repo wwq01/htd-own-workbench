@@ -7,7 +7,7 @@ import { createReviewSchema, updateReviewSchema } from './review.schema.js';
 import reviewService from './review.service.js';
 import { REVIEW_TYPE } from '../../common/constants/enums.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 
 describe('Review Schema 校验', () => {

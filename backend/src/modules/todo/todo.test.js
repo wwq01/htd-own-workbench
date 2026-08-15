@@ -7,7 +7,7 @@ import { createTodoSchema, updateTodoSchema, listTodoSchema } from './todo.schem
 import todoService from './todo.service.js';
 import { TODO_STATUS, TODO_PRIORITY, TODO_CATEGORY } from '../../common/constants/enums.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 const TODAY = '2026-08-10';
 

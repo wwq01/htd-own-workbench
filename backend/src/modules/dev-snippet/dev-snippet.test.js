@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 import { createDevSnippetSchema, updateDevSnippetSchema } from './dev-snippet.schema.js';
 import devSnippetService from './dev-snippet.service.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 
 describe('DevSnippet Schema 校验', () => {

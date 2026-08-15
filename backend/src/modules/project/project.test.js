@@ -7,7 +7,7 @@ import { createProjectSchema, updateProjectSchema, listProjectSchema } from './p
 import projectService from './project.service.js';
 import { PROJECT_PHASE, PROJECT_PRIORITY, SECURITY_DOMAIN } from '../../common/constants/enums.js';
 
-const prisma = new PrismaClient({ datasourceUrl: 'file:D:\\荒天帝工作台\\data\\workbench.db', log: ['error'] });
+const prisma = new PrismaClient({ datasourceUrl: process.env.HTD_TEST_DB_URL, log: ['error'] });
 const PREFIX = 'TEST_';
 
 describe('Project Schema 校验', () => {
