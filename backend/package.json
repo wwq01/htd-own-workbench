@@ -5,7 +5,7 @@
   "type": "module",
   "main": "build/server.cjs",
   "scripts": {
-    "dev": "node --watch src/server.js",
+    "dev": "node src/server.js",
     "start": "node src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
