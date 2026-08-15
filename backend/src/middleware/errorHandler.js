@@ -2,7 +2,7 @@
  * 全局异常捕获中间件
  * 捕获同步/异步错误，统一返回错误响应
  */
-import { BusinessError } from '../common/error.js';
+import { BackendError } from '../common/error.js';
 import { ErrorCodes } from '../common/constants/index.js';
 import logger from '../common/logger.js';
 
@@ -32,14 +32,10 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // 业务错误
-  if (err instanceof BusinessError) {
+  // 业务错误（统一经 toPublic 白名单序列化，避免泄露内部信息）
+  if (err instanceof BackendError) {
     logger.warn(`[业务错误] ${req.method} ${req.path} - [${err.code}] ${err.message}`);
-    return res.status(200).json({
-      code: err.code,
-      msg: err.message,
-      data: err.data,
-    });
+    return res.status(err.httpStatus || 200).json(err.toPublic());
   }
 
   // Prisma 错误

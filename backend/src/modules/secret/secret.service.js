@@ -14,7 +14,7 @@ import { ErrorCodes } from '../../common/constants/index.js';
 class SecretService {
   async create(payload) {
     const data = createSecretSchema.parse(payload);
-    return secretRepository.create({
+    return this.toPublic(await secretRepository.create({
       name: data.name,
       type: data.type,
       content: data.content,
@@ -22,7 +22,7 @@ class SecretService {
       remark: this._normalizeText(data.remark),
       expiryDate: this._normalizeText(data.expiryDate),
       sortOrder: data.sortOrder ?? 0,
-    });
+    }));
   }
 
   async update(payload) {
@@ -42,7 +42,7 @@ class SecretService {
     if ('expiryDate' in fields) updateData.expiryDate = this._normalizeText(fields.expiryDate);
     if ('sortOrder' in fields) updateData.sortOrder = fields.sortOrder;
 
-    return secretRepository.updateById(id, updateData);
+    return this.toPublic(await secretRepository.updateById(id, updateData));
   }
 
   async delete(id) {
@@ -60,15 +60,16 @@ class SecretService {
     if (!item) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '凭据不存在');
     }
-    return item;
+    return this.toPublic(item);
   }
 
   async list(query = {}) {
     const q = listSecretSchema.parse(query);
-    return secretRepository.listWithFilters({
+    const rows = await secretRepository.listWithFilters({
       type: q.type,
       keyword: q.keyword,
     });
+    return rows.map((item) => this.toPublic(item));
   }
 
   /**
@@ -81,6 +82,28 @@ class SecretService {
   _normalizeText(value) {
     if (value === '' || value === undefined || value === null) return null;
     return value;
+  }
+
+  /**
+   * 字段白名单序列化：仅对外暴露安全字段。
+   * 注意：content 为凭据明文，本地单用户场景下前端需展示/复制，故予以保留；
+   * 白名单的意义在于——未来模型新增敏感列时不会被自动泄露。
+   */
+  toPublic(item) {
+    if (!item) return item;
+    return {
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      content: item.content,
+      usageScenario: item.usageScenario,
+      remark: item.remark,
+      expiryDate: item.expiryDate,
+      sortOrder: item.sortOrder,
+      deletedAt: item.deletedAt,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    };
   }
 }
 

@@ -29,7 +29,27 @@ function createApp() {
   const app = express();
 
   // ===== 基础中间件 =====
-  app.use(cors());
+  // CORS 收敛为本地源白名单：仅允许同源 / localhost / 127.0.0.1，
+  // 可通过 HTD_CORS_ORIGINS 环境变量追加（逗号分隔），杜绝完全开放。
+  const allowedOrigins = new Set([
+    `http://${appConfig.host}:${appConfig.port}`,
+    `http://localhost:${appConfig.port}`,
+    `http://127.0.0.1:${appConfig.port}`,
+    ...(process.env.HTD_CORS_ORIGINS
+      ? process.env.HTD_CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+      : []),
+  ]);
+  app.use(cors({
+    origin: (origin, callback) => {
+      // 同源请求（origin 为空）或命中白名单放行；其余拒绝（不返回 CORS 头）
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+  }));
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
   app.use(requestLogMiddleware);
