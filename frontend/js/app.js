@@ -28,7 +28,11 @@ const App = {
   name: 'App',
   setup() {
     const appStore = useAppStore();
+    const uiStore = window.useUiStore ? window.useUiStore() : null;
     const dataStore = useDataStore();
+
+    // 命令面板引用（Ctrl/Cmd+K 唤起）
+    const paletteRef = Vue.ref(null);
 
     // 当前路由信息
     const currentRoute = Vue.ref(null);
@@ -40,6 +44,11 @@ const App = {
 
     // 导航菜单
     const navItems = NAV_ITEMS;
+
+    // 备份状态点数据源（顶栏展示，§5.1.7）
+    const backupStatus = Vue.ref(null);
+    const backupError = Vue.ref('');
+    let backupPollTimer = null;
 
     // 页面组件映射
     const pageComponents = {
@@ -67,9 +76,54 @@ const App = {
       return currentRoute.value?.title || '首页总览';
     });
 
+    // 保存状态文字（顶栏状态点标签，§5.3.2）
+    const saveLabel = Vue.computed(() => {
+      if (!uiStore) return '';
+      const map = { idle: '', saving: '保存中', saved: '已保存', failed: '保存失败' };
+      return map[uiStore.saveState] || '';
+    });
+
+    // 备份状态文字（§5.1.7）
+    const backupLabel = Vue.computed(() => {
+      if (!backupStatus.value) return '';
+      if (backupStatus.value.autoPaused) return '备份已暂停';
+      const map = { idle: '', pending: '备份中', success: '已备份', error: '备份失败', saved: '已备份' };
+      return map[backupStatus.value.status] || '';
+    });
+
     // 导航点击
     function handleNav(path) {
       htdRouter.navigate(path);
+    }
+
+    // 命令面板唤起
+    function openPalette() {
+      if (paletteRef.value) paletteRef.value.open();
+    }
+
+    // 全局快捷键：Ctrl/Cmd + K 唤起命令面板
+    function handleGlobalKeydown(e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        openPalette();
+      }
+    }
+
+    // 手动保存全部草稿（§5.3.4）：广播 flush 事件，V1.3 模块接入 DraftSaver 后生效
+    function manualSaveAll() {
+      if (window.eventBus) window.eventBus.emit('ui:flush-all');
+      showToast('已触发全部保存', 'success');
+    }
+
+    // 拉取备份运行状态（顶栏状态点）
+    async function loadBackupStatus() {
+      try {
+        const s = await htdApi.get('/system/backups/status');
+        backupStatus.value = s;
+        backupError.value = s && s.error ? s.error : '';
+      } catch (e) {
+        // 状态查询失败不阻塞主流程
+      }
     }
 
     // 快速备忘保存（直接调 dataStore.createMemo，已包含校验+toast+刷新）
@@ -111,19 +165,39 @@ const App = {
       dataStore.fetchStatistics();
       appStore.refreshDataCount();
       appStore.loadSettings();
+
+      // 命令面板全局快捷键
+      window.addEventListener('keydown', handleGlobalKeydown);
+
+      // 备份状态轮询（轻量，8s 一次）
+      loadBackupStatus();
+      backupPollTimer = setInterval(loadBackupStatus, 8000);
+    });
+
+    Vue.onUnmounted(() => {
+      window.removeEventListener('keydown', handleGlobalKeydown);
+      if (backupPollTimer) clearInterval(backupPollTimer);
     });
 
     return {
       appStore,
+      uiStore,
       dataStore,
       navItems,
       currentPage,
       pageTitle,
       memoInput,
       LOGO_SVG,
+      paletteRef,
+      backupStatus,
+      backupError,
+      saveLabel,
+      backupLabel,
       handleNav,
       saveMemo,
       handleExport,
+      openPalette,
+      manualSaveAll,
     };
   },
   template: `
@@ -168,6 +242,29 @@ const App = {
             />
           </div>
           <div class="app-topbar__actions">
+            <button class="htp-btn htp-btn--text htp-btn--sm app-topbar__search" @click="openPalette" title="命令面板 (Ctrl/Cmd+K)">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="7"></circle><path stroke-linecap="round" d="M21 21l-4.3-4.3"></path>
+              </svg>
+            </button>
+            <status-dot
+              v-if="uiStore && uiStore.saveState !== 'idle'"
+              :status="uiStore.saveState"
+              :label="saveLabel"
+              :title="uiStore.saveError || saveLabel"
+            ></status-dot>
+            <status-dot
+              v-if="backupStatus && (backupStatus.status !== 'idle' || backupStatus.autoPaused)"
+              :status="backupStatus.autoPaused ? 'error' : (backupStatus.status === 'success' ? 'success' : backupStatus.status)"
+              :label="backupLabel"
+              :title="backupError || backupLabel"
+            ></status-dot>
+            <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="manualSaveAll" title="保存全部草稿">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+              </svg>
+              保存
+            </button>
             <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="handleExport">
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
@@ -182,6 +279,9 @@ const App = {
           <component :is="currentPage"></component>
         </div>
       </main>
+
+      <!-- 命令面板（独立挂载，最高层） -->
+      <htp-command-palette ref="paletteRef"></htp-command-palette>
     </div>
   `,
 };
@@ -205,6 +305,9 @@ app.component('HtpSelect', HtpSelect);
 app.component('HtpTag', HtpTag);
 app.component('HtpCheckbox', HtpCheckbox);
 app.component('HtpEmpty', HtpEmpty);
+app.component('StatusDot', StatusDot);
+app.component('HtpCommandPalette', HtpCommandPalette);
+app.component('ConfirmPermanentDelete', ConfirmPermanentDelete);
 
 // 挂载应用
 app.mount('#app');

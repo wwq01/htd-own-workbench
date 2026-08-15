@@ -89,6 +89,31 @@ class SystemController {
     }
   }
 
+  async createManualBackup(req, res, next) {
+    try {
+      const note = req.body && req.body.note ? String(req.body.note) : '';
+      res.success(await backupService.createManualBackup(note));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async restoreBackup(req, res, next) {
+    try {
+      res.success(await backupService.restoreBackup(req.params.fileName));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getBackupStatus(req, res, next) {
+    try {
+      res.success(backupService.getStatus());
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async downloadBackup(req, res, next) {
     try {
       const filePath = backupService.getBackupPath(req.params.fileName);

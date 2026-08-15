@@ -8,6 +8,31 @@ import { findAvailablePort } from './common/utils/port.js';
 import { openBrowser } from './common/utils/browser.js';
 import appConfig from './config/app.config.js';
 import logger from './common/logger.js';
+import http from 'http';
+
+/**
+ * 探测默认端口是否已有工作台实例在运行（进程复用，§5.3.3）
+ * 命中 /system/health 且 service 标识匹配即判定为同源实例
+ */
+async function probeInstance(port) {
+  return new Promise((resolve) => {
+    const req = http.get(
+      { host: '127.0.0.1', port, path: `${appConfig.apiPrefix}/system/health` },
+      (res) => {
+        let body = '';
+        res.on('data', (c) => { body += c; });
+        res.on('end', () => {
+          try {
+            const j = JSON.parse(body);
+            resolve(!!(j && j.data && j.data.service === 'htd-own-workbench'));
+          } catch (e) { resolve(false); }
+        });
+      },
+    );
+    req.on('error', () => resolve(false));
+    req.setTimeout(800, () => { req.destroy(); resolve(false); });
+  });
+}
 
 async function startServer() {
   try {
@@ -16,6 +41,15 @@ async function startServer() {
 
     // 2. 连接数据库
     await connectDatabase();
+
+    // 2.5 进程复用：若默认端口已有工作台实例在跑，直接打开浏览器复用，避免多进程写 SQLite 锁冲突
+    const existingInstance = await probeInstance(appConfig.port);
+    if (existingInstance) {
+      const url = `http://${appConfig.host}:${appConfig.port}`;
+      logger.info(`检测到已有工作台实例（${url}），复用进程，仅打开浏览器`);
+      openBrowser(url);
+      process.exit(0);
+    }
 
     // 3. 检测可用端口
     const port = await findAvailablePort(appConfig.port, 10, appConfig.host);

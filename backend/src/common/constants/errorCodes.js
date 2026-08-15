@@ -30,6 +30,17 @@ export const ErrorCodes = {
   FILE_TOO_LARGE: 4001,
   FILE_FORMAT: 4002,
   FILE_NOT_FOUND: 4003,
+
+  // 来源校验错误 5xxx
+  ORIGIN_FORBIDDEN: 'ORIGIN_FORBIDDEN',
+
+  // 备份相关错误 6xxx
+  BACKUP_FILE_NOT_FOUND: 'DETECT.BACKUP.FILE_NOT_FOUND',
+  BACKUP_DISK_FULL: 'EXEC.BACKUP.DISK_FULL',
+  BACKUP_VERSION_TOO_HIGH: 'RESULT.BACKUP.VERSION_TOO_HIGH',
+  BACKUP_CORRUPTED: 'RESULT.BACKUP.CORRUPTED',
+  BACKUP_CREATE_FAILED: 'EXEC.BACKUP.CREATE_FAILED',
+  BACKUP_RESTORE_FAILED: 'EXEC.BACKUP.RESTORE_FAILED',
 };
 
 export const ErrorMessages = {
@@ -52,4 +63,12 @@ export const ErrorMessages = {
   [ErrorCodes.FILE_TOO_LARGE]: '文件过大',
   [ErrorCodes.FILE_FORMAT]: '文件格式不支持',
   [ErrorCodes.FILE_NOT_FOUND]: '文件不存在',
+
+  [ErrorCodes.ORIGIN_FORBIDDEN]: '请求来源不被允许',
+  [ErrorCodes.BACKUP_FILE_NOT_FOUND]: '备份文件不存在',
+  [ErrorCodes.BACKUP_DISK_FULL]: '备份写入失败：磁盘空间不足',
+  [ErrorCodes.BACKUP_VERSION_TOO_HIGH]: '备份由更高版本创建，请先升级工作台再恢复此备份',
+  [ErrorCodes.BACKUP_CORRUPTED]: '备份文件已损坏，无法恢复（已保留原主库）',
+  [ErrorCodes.BACKUP_CREATE_FAILED]: '备份创建失败',
+  [ErrorCodes.BACKUP_RESTORE_FAILED]: '备份恢复失败',
 };

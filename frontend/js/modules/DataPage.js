@@ -1,7 +1,7 @@
 /**
- * DataPage - 数据与部署页面（阶段 5）
+ * DataPage - 数据与部署页面（阶段 5 / V1.2 备份升级）
  * 标签1：工作部署记录（CRUD + 环境筛选 + 关键字搜索 + 一键复制命令）
- * 标签2：本APP数据管理（JSON 导出 / 导入 / 清空）
+ * 标签2：本APP数据管理（JSON 导出 / 导入 / 清空 / SQLite 整库备份恢复）
  */
 const DEPLOY_ENV_OPTIONS = [
   { label: '演示环境', value: '演示环境' },
@@ -48,6 +48,22 @@ const DataPage = {
     const backupLoading = Vue.ref(false);
     const backupDeleteConfirm = Vue.ref(null);
 
+    // —— V1.2 备份升级 ——
+    const backupNote = Vue.ref('');
+    const backupNoteModalVisible = Vue.ref(false);
+    const restoringName = Vue.ref(null);
+    const restoreLoading = Vue.ref(false);
+    const backupStatus = Vue.ref(null);
+    const backupError = Vue.ref('');
+    let backupStatusTimer = null;
+
+    const backupStatusLabel = Vue.computed(() => {
+      if (!backupStatus.value) return '';
+      if (backupStatus.value.autoPaused) return '备份已暂停';
+      const m = { idle: '', pending: '备份中', success: '已备份', saved: '已备份', error: '备份失败' };
+      return m[backupStatus.value.status] || '';
+    });
+
     async function loadDataStats() {
       dataLoading.value = true;
       try {
@@ -55,25 +71,6 @@ const DataPage = {
         dataStats.value = dataStore.dataStats;
       } finally {
         dataLoading.value = false;
-      }
-    }
-
-    async function exportData() {
-      try {
-        const response = await fetch('/api/v1/system/data/export', { cache: 'no-store' });
-        const body = await response.json();
-        if (body.code !== 0) throw new Error(body.msg || '导出失败');
-        const blob = new Blob([JSON.stringify(body.data, null, 2)], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        const stamp = new Date().toISOString().slice(0, 10);
-        link.href = url;
-        link.download = `huangtiandi-workbench-backup-${stamp}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-        showToast('数据导出成功', 'success');
-      } catch (e) {
-        showToast(`数据导出失败：${e.message}`, 'error');
       }
     }
 
@@ -89,11 +86,34 @@ const DataPage = {
       }
     }
 
-    async function createDbBackup() {
+    async function loadBackupStatus() {
       try {
-        const result = await htdApi.post('/system/backups');
+        const s = await htdApi.get('/system/backups/status');
+        backupStatus.value = s;
+        backupError.value = s && s.error ? s.error : '';
+      } catch (e) { /* 状态查询失败不阻塞 */ }
+    }
+
+    function startBackupStatusPoll() {
+      stopBackupStatusPoll();
+      backupStatusTimer = setInterval(loadBackupStatus, 8000);
+    }
+    function stopBackupStatusPoll() {
+      if (backupStatusTimer) { clearInterval(backupStatusTimer); backupStatusTimer = null; }
+    }
+
+    // 打开「创建备份」备注 Modal
+    function openBackupNoteModal() {
+      backupNote.value = '';
+      backupNoteModalVisible.value = true;
+    }
+    async function confirmCreateBackup() {
+      try {
+        const res = await htdApi.post('/system/backups/manual', { note: backupNote.value.trim() });
+        backupNoteModalVisible.value = false;
         await loadBackups();
-        showToast(`数据库备份成功：${result.fileName}`, 'success');
+        await loadBackupStatus();
+        showToast(`数据库备份成功：${res.fileName}`, 'success');
       } catch (e) {
         // 请求封装已显示错误
       }
@@ -115,6 +135,23 @@ const DataPage = {
         showToast('备份文件已删除', 'success');
       } catch (e) {
         // 请求封装已显示错误
+      }
+    }
+
+    // 恢复：先二次确认，再覆盖（后端自动先做安全快照）
+    function requestRestore(item) { restoringName.value = item.fileName; }
+    async function confirmRestore() {
+      if (!restoringName.value) return;
+      restoreLoading.value = true;
+      try {
+        const res = await htdApi.post(`/system/backups/restore/${encodeURIComponent(restoringName.value)}`);
+        restoringName.value = null;
+        await loadBackups();
+        showToast(`已恢复备份，安全快照：${res.snapshot}`, 'success');
+      } catch (e) {
+        // 请求封装已显示错误
+      } finally {
+        restoreLoading.value = false;
       }
     }
 
@@ -169,7 +206,14 @@ const DataPage = {
     }
 
     Vue.watch(activeTab, (tab) => {
-      if (tab === 'data') loadDataStats();
+      if (tab === 'data') {
+        loadDataStats();
+        loadBackups();
+        loadBackupStatus();
+        startBackupStatusPoll();
+      } else {
+        stopBackupStatusPoll();
+      }
     });
 
     // ============ 部署记录：列表 & 筛选 ============
@@ -294,6 +338,28 @@ const DataPage = {
       showToast(ok ? `已复制：${label}` : '复制失败', ok ? 'success' : 'error');
     }
 
+    Vue.onUnmounted(() => stopBackupStatusPoll());
+
+    // —— 导出数据 ——
+    async function exportData() {
+      try {
+        const response = await fetch('/api/v1/system/data/export', { cache: 'no-store' });
+        const body = await response.json();
+        if (body.code !== 0) throw new Error(body.msg || '导出失败');
+        const blob = new Blob([JSON.stringify(body.data, null, 2)], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const stamp = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.download = `huangtiandi-workbench-backup-${stamp}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast('数据导出成功', 'success');
+      } catch (e) {
+        showToast(`数据导出失败：${e.message}`, 'error');
+      }
+    }
+
     return {
       activeTab, switchTab,
       // 部署记录
@@ -311,7 +377,11 @@ const DataPage = {
       loadDataStats, exportData, selectImportFile, confirmImport, requestClear, confirmClear,
       CLEAR_SCOPE_OPTIONS, IMPORT_MODE_OPTIONS,
       backups, backupLoading, backupDeleteConfirm,
-      loadBackups, createDbBackup, downloadDbBackup, confirmBackupDelete,
+      loadBackups, downloadDbBackup, confirmBackupDelete,
+      // V1.2 备份升级
+      backupNote, backupNoteModalVisible, openBackupNoteModal, confirmCreateBackup,
+      restoringName, restoreLoading, requestRestore, confirmRestore,
+      backupStatus, backupError, backupStatusLabel,
     };
   },
   template: `
@@ -485,26 +555,71 @@ const DataPage = {
         <div class="htp-card" style="margin-top: 16px;">
           <div class="htp-card__header">
             <div>
-              <div class="htp-card__title">SQLite 文件备份</div>
-              <div class="text-tertiary" style="margin-top: 4px;">备份保存于本机备份目录，可下载留存或删除旧备份。</div>
+              <div class="htp-card__title">SQLite 文件备份（整库级）</div>
+              <div class="text-tertiary" style="margin-top: 4px;">整库 SQLite 快照存于本机备份目录；恢复前系统自动做安全快照，选错可回退。</div>
             </div>
-            <button class="htp-btn htp-btn--secondary" :disabled="backupLoading" @click="createDbBackup">创建 DB 备份</button>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <status-dot
+                v-if="backupStatus && (backupStatus.status !== 'idle' || backupStatus.autoPaused)"
+                :status="backupStatus.autoPaused ? 'error' : (backupStatus.status === 'success' ? 'success' : backupStatus.status)"
+                :label="backupStatusLabel"
+                :title="backupError || backupStatusLabel"
+              ></status-dot>
+              <button class="htp-btn htp-btn--secondary" :disabled="backupLoading" @click="openBackupNoteModal">创建备份</button>
+            </div>
           </div>
+
+          <div v-if="backupStatus && backupStatus.autoPaused" class="backup-autopause">
+            ⚠ 自动备份已连续失败 3 次并暂停。多为磁盘空间不足 / 文件权限 / 杀软锁定 SQLite 所致，请排查后手动创建一次备份即可恢复自动策略。
+          </div>
+
           <div v-if="backupLoading" class="text-tertiary">正在读取备份列表...</div>
           <htp-empty v-else-if="backups.length === 0" text="暂无 SQLite 备份文件"></htp-empty>
           <div v-else class="backup-list">
             <div v-for="item in backups" :key="item.fileName" class="backup-list__item">
               <div>
-                <div style="font-weight: 500;">{{ item.fileName }}</div>
-                <div class="text-tertiary">{{ item.sizeText }} · {{ item.updatedAt }}</div>
+                <div style="font-weight: 500; display:flex; align-items:center; gap:8px;">
+                  {{ item.fileName }}
+                  <htp-tag :type="item.type === 'manual' ? 'primary' : (item.type === 'pre-restore' ? 'warning' : 'info')">
+                    {{ item.type === 'manual' ? '手动' : (item.type === 'pre-restore' ? '恢复前快照' : '每日') }}
+                  </htp-tag>
+                </div>
+                <div class="text-tertiary">
+                  {{ item.sizeText }} · {{ item.updatedAt }}
+                  <span v-if="item.note"> · 备注：{{ item.note }}</span>
+                </div>
               </div>
               <div style="display:flex; gap:8px;">
                 <button class="htp-btn htp-btn--text htp-btn--sm" @click="downloadDbBackup(item)">下载</button>
+                <button class="htp-btn htp-btn--text htp-btn--sm" @click="requestRestore(item)" :disabled="restoreLoading">恢复</button>
                 <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click="backupDeleteConfirm = item">删除</button>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- 创建备份备注 Modal -->
+        <htp-modal v-if="backupNoteModalVisible" :visible="true" title="创建数据库备份" @cancel="backupNoteModalVisible = false" width="480px">
+          <p class="text-tertiary">将保存当前完整 SQLite 数据库到本机备份目录，可随时恢复。</p>
+          <div class="mt-base">
+            <label class="form-label">备份备注（可选，便于识别）</label>
+            <input class="htp-input" v-model="backupNote" placeholder="如：升级 V1.2 前 / 季度归档" maxlength="40" />
+          </div>
+          <template #footer>
+            <button class="htp-btn htp-btn--secondary" @click="backupNoteModalVisible = false">取消</button>
+            <button class="htp-btn htp-btn--primary" @click="confirmCreateBackup">创建备份</button>
+          </template>
+        </htp-modal>
+
+        <!-- 恢复二次确认 Modal -->
+        <htp-modal v-if="restoringName" :visible="true" title="确认恢复备份？" @cancel="restoringName = null" width="480px">
+          <p style="color: var(--color-warning); font-weight: 600;">恢复将用所选备份<strong>覆盖当前数据库</strong>。系统会先自动对当前库做安全快照，选错也可一键回退。</p>
+          <p style="margin-top: 8px; font-weight: 500; word-break: break-all;">{{ restoringName }}</p>
+          <template #footer>
+            <button class="htp-btn htp-btn--secondary" @click="restoringName = null">取消</button>
+            <button class="htp-btn htp-btn--danger" :disabled="restoreLoading" @click="confirmRestore">{{ restoreLoading ? '恢复中...' : '确认恢复' }}</button>
+          </template>
+        </htp-modal>
 
         <htp-modal v-if="importConfirm" :visible="true" title="确认导入数据？" @cancel="importConfirm = null">
           <p>即将导入文件：<strong>{{ importConfirm.fileName }}</strong></p>

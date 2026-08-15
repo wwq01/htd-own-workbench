@@ -31,6 +31,18 @@ export class BackendError extends Error {
       data: this.data,
     };
   }
+
+  /**
+   * 统一序列化：供错误处理器完整序列化（含 httpStatus）
+   */
+  toJSON() {
+    return {
+      code: this.code,
+      message: this.message,
+      httpStatus: this.httpStatus,
+      data: this.data,
+    };
+  }
 }
 
 export class BusinessError extends BackendError {

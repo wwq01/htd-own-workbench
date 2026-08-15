@@ -54,7 +54,7 @@ const appConfig = {
     : path.resolve(moduleDir, '../../prisma/template.db'),
 
   // 应用版本
-  version: '1.0.0',
+  version: '1.2.0',
 
   // API 前缀
   apiPrefix: '/api/v1',

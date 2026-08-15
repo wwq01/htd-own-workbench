@@ -21,3 +21,6 @@ coverage/
 Thumbs.db
 .idea/
 .vscode/
+
+# WorkBuddy local memory / skills / artifacts (must never be committed)
+.workbuddy/

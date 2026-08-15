@@ -56,20 +56,32 @@ async function request(url, options = {}) {
     config.body = JSON.stringify(config.body);
   }
 
+  // 写类请求驱动顶栏保存状态三态机（§5.3.2）；GET 为读，不触发
+  const ui = window.useUiStore ? window.useUiStore() : null;
+  const isWrite = /^(POST|PUT|PATCH|DELETE)$/i.test(config.method || 'GET');
+  let uiHandled = false;
+  const markFailed = (err) => {
+    if (ui && isWrite && !uiHandled) { ui.setFailed(err); uiHandled = true; }
+  };
+  if (ui && isWrite) ui.setSaving();
+
   try {
     const response = await fetch(fullUrl, config);
     const data = await response.json();
 
     // 统一处理响应
     if (data.code === 0) {
+      if (ui && isWrite) { ui.setSaved(); uiHandled = true; }
       return data.data;
     } else {
       // 业务错误
+      markFailed(new Error(data.msg || '操作失败'));
       showToast(data.msg || '操作失败', 'error');
       throw new Error(data.msg || '操作失败');
     }
   } catch (error) {
     // 网络错误或 JSON 解析失败
+    markFailed(error);
     if (error.message === 'Failed to fetch') {
       showToast('网络请求失败，请检查服务是否启动', 'error');
     } else if (!error.msg) {

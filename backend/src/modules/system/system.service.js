@@ -3,15 +3,18 @@
  * 提供健康检查、全局统计数据
  */
 import prisma from '../../database/prisma.js';
+import appConfig from '../../config/app.config.js';
 import { today, startOfWeek, endOfWeek, formatDate } from '../../common/utils/date.js';
 
 class SystemService {
   /**
-   * 健康检查
+   * 健康检查（含 service/version 供启动器进程复用探测，§5.3.3）
    */
   async healthCheck() {
     return {
       status: 'ok',
+      service: 'htd-own-workbench',
+      version: appConfig.version,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     };

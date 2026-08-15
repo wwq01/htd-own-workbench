@@ -8,6 +8,10 @@ import appConfig from './config/app.config.js';
 import { responseMiddleware } from './middleware/response.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { requestLogMiddleware } from './middleware/requestLog.js';
+import originGuard from './middleware/origin-guard.js';
+import backupTrigger from './middleware/backup-trigger.js';
+import backupService from './modules/system/backup.service.js';
+import prisma from './database/prisma.js';
 import systemRouter from './modules/system/system.router.js';
 import todoRouter from './modules/todo/todo.router.js';
 import memoRouter from './modules/memo/memo.router.js';
@@ -54,6 +58,12 @@ function createApp() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
   app.use(requestLogMiddleware);
   app.use(responseMiddleware);
+  // 写入类接口 Origin 校验（仅允许本地 127.0.0.1 / localhost，防御 CSRF）
+  app.use(originGuard);
+  // 写入成功后懒触发每日自动备份（不阻塞主流程）
+  app.use(backupTrigger);
+  // 恢复备份后让 Prisma 断开并以新库重连
+  backupService.prisma = prisma;
 
   // ===== API 路由 =====
   app.use(`${appConfig.apiPrefix}/system`, systemRouter);
