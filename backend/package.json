@@ -16,7 +16,7 @@
     "build:prepare": "node scripts/prepare-build.mjs",
     "build:entry": "node scripts/build-entry.mjs",
     "build:template": "node scripts/build-template-db.mjs",
-    "build:win": "npm run build:prepare && npm run build:template && npm run build:entry && pkg --targets node22-win-x64 --fallback-to-source --public --output ../build/荒天帝工作台.exe .",
+    "build:win": "npm run build:prepare && npm run build:template && npm run build:entry && pkg --targets node24-win-x64 --fallback-to-source --public --output ../build/荒天帝工作台.exe .",
     "build:mac": "npm run build:prepare && pkg --targets node22-macos-x64 --output ../build/荒天帝工作台-macos ."
   },
   "dependencies": {
