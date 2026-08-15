@@ -23,7 +23,7 @@ describe('阶段 7 路由与交付资源清单', () => {
 
   it('应存在可执行的 Windows 与 macOS 打包脚本', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'backend/package.json'), 'utf8'));
-    expect(pkg.scripts['build:win']).toContain('node22-win-x64');
+    expect(pkg.scripts['build:win']).toContain('node24-win-x64');
     expect(pkg.scripts['build:mac']).toContain('node22-macos-x64');
     expect(pkg.pkg.assets).toContain('../frontend/**/*');
   });
