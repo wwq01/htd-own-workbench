@@ -59,6 +59,21 @@
   --tag-delivery: #06B6D4;
   --tag-closed: #10B981;
 
+  /* --- 首页三栏专属色（工作 / 生活 / 知识，§6.1） --- */
+  --color-work: #3B82F6;          /* 工作组强调色 */
+  --color-work-bg: rgba(59, 130, 246, 0.10);
+  --color-life: #10B981;          /* 生活组强调色 */
+  --color-life-bg: rgba(16, 185, 129, 0.10);
+  --color-knowledge: #8B5CF6;     /* 知识组强调色 */
+  --color-knowledge-bg: rgba(139, 92, 246, 0.10);
+
+  /* --- 任务 5 态状态点色（§6.2.1） --- */
+  --status-pending: #64748B;
+  --status-in_progress: #3B82F6;
+  --status-completed: #10B981;
+  --status-cancelled: #94A3B8;
+  --status-delayed: #F59E0B;
+
   /* --- 边框色（玻璃描边：白色细线 + 内高光） --- */
   --border-default: rgba(255, 255, 255, 0.16);
   --border-hover: #5B8DEF;
@@ -176,6 +191,19 @@ html[data-theme="light"] {
   --glass-border:    rgba(15, 23, 42, 0.10);
   --glass-highlight: rgba(255, 255, 255, 0.85);
   --glass-fallback:  rgba(255, 255, 255, 0.92);
+
+  /* 首页三栏专属色（亮色主题：加深强调色 + 更弱的背景条） */
+  --color-work: #2563EB;
+  --color-work-bg: rgba(37, 99, 235, 0.08);
+  --color-life: #059669;
+  --color-life-bg: rgba(5, 150, 105, 0.08);
+  --color-knowledge: #7C3AED;
+  --color-knowledge-bg: rgba(124, 58, 237, 0.08);
+  --status-pending: #475569;
+  --status-in_progress: #2563EB;
+  --status-completed: #059669;
+  --status-cancelled: #94A3B8;
+  --status-delayed: #D97706;
 
   /* 亮色背景墙令牌 */
   --bg-spot-1: rgba(150, 120, 255, 0.30);

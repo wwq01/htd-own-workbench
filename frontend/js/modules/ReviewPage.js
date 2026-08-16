@@ -155,6 +155,30 @@ const ReviewPage = {
       } catch (e) { /* toast 已显示 */ }
     }
 
+    // ============ 状态机操作（§6.2.3） ============
+    async function submitReview(item) {
+      try {
+        await dataStore.reviewSubmit(item.id);
+        await loadList();
+      } catch (e) { /* toast 已显示 */ }
+    }
+    async function precipitateReview(item) {
+      try {
+        await dataStore.reviewPrecipitate(item.id);
+        await loadList();
+      } catch (e) { /* toast 已显示 */ }
+    }
+    function reviewStatusLabel(s) {
+      if (s === 'submitted') return '已提交';
+      if (s === 'precipitated') return '已沉淀';
+      return '草稿';
+    }
+    function reviewStatusType(s) {
+      if (s === 'submitted') return 'warning';
+      if (s === 'precipitated') return 'success';
+      return 'default';
+    }
+
     // ============ 辅助 ============
     function currentForm() {
       return editing.value && editing.value.type === 'week' ? weekForm : projectForm;
@@ -220,6 +244,7 @@ const ReviewPage = {
       weekForm, projectForm,
       openEdit, submitForm,
       delConfirm, requestDelete, confirmDelete,
+      submitReview, precipitateReview, reviewStatusLabel, reviewStatusType,
       currentForm, resultType, isFilled, filledCount, totalFields, filledCountByType, autoDataSummary, projectLabel, projectPriorityLabel,
       REVIEW_RESULT_OPTIONS,
     };
@@ -257,6 +282,7 @@ const ReviewPage = {
               <htp-tag v-if="item.type === 'project' && item.reviewResult" :type="resultType(item.reviewResult)">{{ item.reviewResult }}</htp-tag>
             </div>
             <div class="review-card__meta">
+              <htp-tag :type="reviewStatusType(item.status)">{{ reviewStatusLabel(item.status) }}</htp-tag>
               <span class="text-tertiary text-sm">
                 {{ filledCountByType(item) }} / {{ totalFields(item.type) }} 字段已填写
               </span>
@@ -308,6 +334,16 @@ const ReviewPage = {
           </div>
 
           <div class="review-card__actions">
+            <button
+              v-if="item.status === 'draft'"
+              class="htp-btn htp-btn--primary htp-btn--sm"
+              @click="submitReview(item)"
+            >提交</button>
+            <button
+              v-if="item.status === 'submitted'"
+              class="htp-btn htp-btn--primary htp-btn--sm"
+              @click="precipitateReview(item)"
+            >生成沉淀</button>
             <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="openEdit(item)">编辑</button>
             <button class="htp-btn htp-btn--danger htp-btn--sm" @click="requestDelete(item)">删除</button>
           </div>

@@ -132,6 +132,12 @@ function initRouter() {
   registerRoute('/secret', { title: '轻量凭据保险箱', module: 'secret' });
   registerRoute('/data', { title: '数据与部署', module: 'data' });
   registerRoute('/settings', { title: '系统设置', module: 'settings' });
+  registerRoute('/meeting', { title: '会议纪要', module: 'meeting' });
+  registerRoute('/habit', { title: '习惯打卡', module: 'habit' });
+  registerRoute('/time-block', { title: '时间块/番茄钟', module: 'time-block' });
+  registerRoute('/finance', { title: '财务速记', module: 'finance' });
+  registerRoute('/vault', { title: '沉淀 Vault', module: 'vault' });
+  registerRoute('/system/recycle-bin', { title: '回收站', module: 'recycle-bin' });
 
   // 监听 hash 变化
   window.addEventListener('hashchange', renderRoute);

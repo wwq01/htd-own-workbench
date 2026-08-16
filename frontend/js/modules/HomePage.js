@@ -1,7 +1,10 @@
 /**
- * 首页总览页面
+ * 首页总览页面（V1.3 三栏版 §6.1）
  * 说明：模板中不使用可选链 (?.) 语法、不直接调用 htdDate 全局对象，
  *       而是通过 setup 返回的封装函数，兼容 Vue 3 无构建运行时模板编译器
+ *
+ * 三栏：💼 工作组 / 🌱 生活组 / 📚 知识组
+ * 数据来自 dataStore.homeSummary（后端 /system/home-summary 一次聚合）
  */
 const HomePage = {
   name: 'HomePage',
@@ -13,94 +16,77 @@ const HomePage = {
     const weekday = htdDate.getWeekdayName();
     const greeting = htdDate.getGreeting();
 
-    // 里程碑：安全读取关联项目名称
-    function milestoneCustomer(m) {
-      return (m && m.project && m.project.customerName) || '—';
+    // 首页三栏聚合数据（computed 便于模板直接读）
+    const home = Vue.computed(() => dataStore.homeSummary);
+
+    // ===== 日期格式化 =====
+    function fmtDate(d) {
+      if (!d) return '';
+      return htdDate.formatDate(d);
     }
-    // 里程碑到期提醒类型：逾期(danger) / 临期≤3天(warning) / 7天内(info)
-    function milestoneTagType(m) {
-      if (!m || !m.dueDate) return 'default';
-      const diff = htdDate.daysBetween(htdDate.today(), m.dueDate);
-      if (diff < 0) return 'danger';        // 已逾期
-      if (diff <= 3) return 'warning';      // 3 天内临期
-      if (diff <= 7) return 'info';         // 7 天内
-      return 'default';
-    }
-    // 里程碑相对时间（逾期前缀）
-    function milestoneDueText(m) {
-      if (!m || !m.dueDate) return '';
-      const diff = htdDate.daysBetween(htdDate.today(), m.dueDate);
-      if (diff < 0) return `已逾期 ${Math.abs(diff)} 天`;
-      return relativeTime(m.dueDate);
-    }
-    // 日期：相对时间描述
     function relativeTime(d) {
+      if (!d) return '';
       return htdDate.relativeTime(d);
     }
-    // 日期：完整日期时间
-    function formatDateTime(d) {
-      return htdDate.formatDateTime(d);
-    }
-    // 跳转路由
-    function goProject() { htdRouter.navigate('/project'); }
-    function goDevelop() { htdRouter.navigate('/develop'); }
-    function goStudy()   { htdRouter.navigate('/study'); }
-    function goTodo()    { htdRouter.navigate('/todo'); }
-    // 待办优先级 → tag type
-    function priorityTag(p) {
-      return p === '高' ? 'danger' : p === '中' ? 'warning' : 'default';
-    }
-    // 跳转到娱乐
-    function goEntertainment() { htdRouter.navigate('/entertainment'); }
-    // 跳转到复盘
-    function goReview() { htdRouter.navigate('/review'); }
-    // 跳转到凭据保险箱
-    function goSecret() { htdRouter.navigate('/secret'); }
-    // 跳转到数据与部署
-    function goData() { htdRouter.navigate('/data'); }
-    // 娱乐推荐
-    const recommend = Vue.ref(null);
-    async function loadRecommend() {
-      try {
-        recommend.value = await dataStore.fetchEntertainmentRecommend();
-      } catch (e) { /* ignore */ }
-    }
-    function entertainmentTypeIcon(t) {
-      const map = { 游戏: 'gamepad', 番剧: 'tv', 剧集: 'film', 书籍: 'book', 其他: 'dice' };
-      return window.htdIcon(map[t] || 'dice', { size: 18 });
-    }
-    function entertainmentWantTotal() {
-      const stats = dataStore.statistics;
-      return (stats.entertainmentWantCount || 0) + (stats.entertainmentPlayingCount || 0);
+    function formatMoney(n) {
+      const v = Number(n || 0);
+      return v.toFixed(2);
     }
 
-    // 页面挂载后自动拉取一次娱乐推荐
-    Vue.onMounted(() => {
-      loadRecommend();
-    });
-    // 备忘快捷删除（二次确认）
-    const confirmDelMemo = Vue.ref(null);
-    function requestDeleteMemo(m) {
-      if (!m) return;
-      confirmDelMemo.value = m;
+    // ===== 路由跳转 =====
+    function goTodo()      { htdRouter.navigate('/todo'); }
+    function goProject()   { htdRouter.navigate('/project'); }
+    function goMeeting()   { htdRouter.navigate('/meeting'); }
+    function goSecret()    { htdRouter.navigate('/secret'); }
+    function goStudy()     { htdRouter.navigate('/study'); }
+    function goReview()    { htdRouter.navigate('/review'); }
+    function goVault()     { htdRouter.navigate('/vault'); }
+    function goHabit()     { htdRouter.navigate('/habit'); }
+    function goTimeBlock() { htdRouter.navigate('/time-block'); }
+    function goFinance()   { htdRouter.navigate('/finance'); }
+
+    // 会议纪要行级跳转（带 id 定位，复用哈希路由）
+    function goMeetingDetail(m) {
+      htdRouter.navigate('/meeting?id=' + (m && m.id));
     }
-    function cancelDeleteMemo() { confirmDelMemo.value = null; }
-    async function confirmDoDeleteMemo() {
-      const m = confirmDelMemo.value;
-      if (!m) return;
-      await dataStore.deleteMemo(m.id);
-      confirmDelMemo.value = null;
+    function goProjectDetail(p) {
+      htdRouter.navigate('/project?id=' + (p && p.id));
+    }
+
+    // ===== 生活组：今日待打卡「打卡 +1」 =====
+    async function quickCheckIn(h) {
+      if (!h) return;
+      try {
+        await dataStore.checkInHabit(h.id, { date: htdDate.today(), count: 1 });
+        await dataStore.fetchHomeSummary();
+      } catch (e) {
+        console.error('快速打卡失败:', e);
+      }
+    }
+
+    // ===== 知识组：推荐「一键生成沉淀草稿」 =====
+    async function genRecommend(rec) {
+      if (!rec) return;
+      try {
+        await dataStore.autoRecommendVault(rec);
+      } catch (e) {
+        console.error('生成沉淀失败:', e);
+      }
+    }
+
+    // 习惯达标标记
+    function habitDone(h) {
+      return h && h.current >= h.target;
     }
 
     return {
       appStore, dataStore,
       todayStr, weekday, greeting,
-      milestoneCustomer, milestoneTagType, milestoneDueText,
-      relativeTime, formatDateTime,
-      goProject, goDevelop, goStudy, goTodo, goEntertainment, goReview, goSecret, goData,
-      priorityTag,
-      recommend, loadRecommend, entertainmentTypeIcon, entertainmentWantTotal,
-      confirmDelMemo, requestDeleteMemo, cancelDeleteMemo, confirmDoDeleteMemo,
+      home,
+      fmtDate, relativeTime, formatMoney,
+      goTodo, goProject, goMeeting, goSecret, goStudy, goReview, goVault, goHabit, goTimeBlock, goFinance,
+      goMeetingDetail, goProjectDetail,
+      quickCheckIn, genRecommend, habitDone,
     };
   },
   template: `
@@ -113,161 +99,214 @@ const HomePage = {
         </div>
       </div>
 
-      <!-- 统计卡片组 -->
-      <div class="stats-grid">
-        <div class="stat-card" @click="goProject">
-          <div class="stat-card__label">进行中项目</div>
-          <div class="stat-card__value stat-card__value--brand">{{ dataStore.statistics.projectCount }}</div>
-        </div>
-        <div class="stat-card" @click="goDevelop">
-          <div class="stat-card__label">待解决开发问题</div>
-          <div class="stat-card__value stat-card__value--warning">{{ dataStore.statistics.devIssueCount }}</div>
-        </div>
-        <div class="stat-card" @click="goStudy">
-          <div class="stat-card__label">本周学习时长(h)</div>
-          <div class="stat-card__value stat-card__value--success">{{ dataStore.statistics.weekStudyHours }}</div>
-        </div>
-        <div class="stat-card" @click="goTodo">
-          <div class="stat-card__label">今日未完成待办</div>
-          <div class="stat-card__value stat-card__value--danger">{{ dataStore.statistics.todayTodoCount }}</div>
-        </div>
+      <!-- 加载态 -->
+      <div v-if="!home" class="home-three-col">
+        <div class="home-col"><div class="home-card"><div class="home-card__empty">加载中…</div></div></div>
+        <div class="home-col"><div class="home-card"><div class="home-card__empty">加载中…</div></div></div>
+        <div class="home-col"><div class="home-card"><div class="home-card__empty">加载中…</div></div></div>
       </div>
 
-      <!-- 第二行统计卡片：工具箱 -->
-      <div class="stats-grid">
-        <div class="stat-card" @click="goSecret">
-          <div class="stat-card__label">凭据总数</div>
-          <div class="stat-card__value stat-card__value--brand">{{ dataStore.statistics.secretCount || 0 }}</div>
-        </div>
-        <div class="stat-card" @click="goData">
-          <div class="stat-card__label">部署记录数</div>
-          <div class="stat-card__value stat-card__value--success">{{ dataStore.statistics.deploymentCount || 0 }}</div>
-        </div>
-      </div>
-
-      <!-- 信息卡片 -->
-      <div class="home-grid">
-        <!-- 即将到期里程碑 -->
-        <htp-card title="即将到期里程碑">
-          <div v-if="dataStore.statistics.upcomingMilestones.length === 0">
-            <htp-empty text="暂无临近到期的里程碑"></htp-empty>
+      <!-- 三栏主体 -->
+      <div v-else class="home-three-col">
+        <!-- ===== 左栏：💼 工作组 ===== -->
+        <div class="home-col home-col--work">
+          <div class="home-col__head">
+            <span class="home-col__icon">💼</span>
+            <span class="home-col__title">工作组</span>
           </div>
-          <div v-else>
+
+          <!-- 卡片1：今日任务进度 -->
+          <div class="home-card home-card--clickable" @click="goTodo">
+            <div class="home-card__title">今日任务进度</div>
+            <div class="home-progress">
+              <div class="home-progress__bar" :style="{ width: home.work.todayProgress.percent + '%' }"></div>
+            </div>
+            <div class="home-progress__meta">
+              <span class="home-progress__percent">{{ home.work.todayProgress.percent }}%</span>
+              <span>已完成 {{ home.work.todayProgress.completed }} / 共 {{ home.work.todayProgress.total }}</span>
+            </div>
+          </div>
+
+          <!-- 卡片2：明日待安排 -->
+          <div class="home-card home-card--clickable" @click="goTodo">
+            <div class="home-card__title">明日待安排</div>
+            <div class="home-card__value home-card__value--accent">{{ home.work.tomorrowCount }}</div>
+            <div class="home-card__hint">条任务已排入明日</div>
+          </div>
+
+          <!-- 卡片3：进行中项目 -->
+          <div class="home-card">
+            <div class="home-card__title">
+              <span>进行中项目</span>
+              <button class="home-card__viewall" @click.stop="goProject">查看全部</button>
+            </div>
+            <div v-if="home.work.activeProjects.length === 0" class="home-card__empty">暂无进行中的项目</div>
+            <div v-else class="home-card__body">
+              <div
+                v-for="p in home.work.activeProjects"
+                :key="p.id"
+                class="home-card__row home-card--clickable"
+                @click="goProjectDetail(p)"
+              >
+                <span class="home-phase-dot" :style="{ background: p.phaseColor, color: p.phaseColor }"></span>
+                <div class="home-card__row-main">
+                  <div class="home-card__row-title">{{ p.name }}</div>
+                  <div class="home-card__row-sub">{{ p.phase }} · 进度 {{ p.progress }}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片4：最近会议纪要 -->
+          <div class="home-card">
+            <div class="home-card__title">
+              <span>最近会议纪要</span>
+              <button class="home-card__viewall" @click.stop="goMeeting">查看全部</button>
+            </div>
+            <div v-if="home.work.recentMeetings.length === 0" class="home-card__empty">暂无会议纪要</div>
+            <div v-else class="home-card__body">
+              <div
+                v-for="m in home.work.recentMeetings"
+                :key="m.id"
+                class="home-card__row home-card--clickable"
+                @click="goMeetingDetail(m)"
+              >
+                <div class="home-card__row-main">
+                  <div class="home-card__row-title">{{ m.title }}</div>
+                  <div class="home-card__row-sub">{{ fmtDate(m.heldAt) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片5：凭据即将到期 -->
+          <div class="home-card home-card--clickable" @click="goSecret">
+            <div class="home-card__title">凭据即将到期</div>
+            <div class="home-card__value home-card__value--accent">{{ home.work.expiringSecrets }}</div>
+            <div class="home-card__hint">条凭据 7 天内到期</div>
+          </div>
+        </div>
+
+        <!-- ===== 中栏：🌱 生活组 ===== -->
+        <div class="home-col home-col--life">
+          <div class="home-col__head">
+            <span class="home-col__icon">🌱</span>
+            <span class="home-col__title">生活组</span>
+          </div>
+
+          <!-- 卡片1：今日待打卡习惯 -->
+          <div class="home-card">
+            <div class="home-card__title">
+              <span>今日待打卡</span>
+              <button class="home-card__viewall" @click.stop="goHabit">查看全部</button>
+            </div>
+            <div v-if="home.life.todayHabits.length === 0" class="home-card__empty">今日习惯已全部达标 🎉</div>
+            <div v-else class="home-card__body">
+              <div v-for="h in home.life.todayHabits" :key="h.id" class="home-card__row">
+                <div class="home-card__row-main">
+                  <div class="home-card__row-title">{{ h.name }}</div>
+                  <div class="home-card__row-sub">
+                    {{ h.kind === 'weekly' ? '本周 ' : '今日 ' }}{{ h.current }} / {{ h.target }}
+                  </div>
+                </div>
+                <button
+                  class="htp-btn htp-btn--primary htp-btn--sm"
+                  :disabled="habitDone(h)"
+                  @click.stop="quickCheckIn(h)"
+                >+1</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片2：连续打卡最长 -->
+          <div class="home-card">
+            <div class="home-card__title">连续打卡最长</div>
+            <div class="home-card__value home-card__value--accent">{{ home.life.maxStreak }}</div>
+            <div class="home-card__hint">天（历史纪录）</div>
+          </div>
+
+          <!-- 卡片3：今日番茄钟 -->
+          <div class="home-card home-card--clickable" @click="goTimeBlock">
+            <div class="home-card__title">今日番茄钟</div>
+            <div class="home-card__value">
+              {{ home.life.todayTomatoes.completed }} <span class="home-card__hint">/ 目标 {{ home.life.todayTomatoes.target }}</span>
+            </div>
+            <div class="home-card__hint">已完成专注时段</div>
+          </div>
+
+          <!-- 卡片4：本月财务净流入 -->
+          <div class="home-card home-card--clickable" @click="goFinance">
+            <div class="home-card__title">本月财务净流入</div>
             <div
-              v-for="m in dataStore.statistics.upcomingMilestones"
-              :key="m.id"
-              class="htp-list-item"
-              @click="goProject"
+              class="home-card__value"
+              :class="home.life.financeMonth.direction === 'up' ? 'text-success' : 'text-danger'"
             >
-              <div class="flex-1">
-                <div class="text-primary text-ellipsis">{{ m.name }}</div>
-                <div class="text-sm text-tertiary">{{ milestoneCustomer(m) }} · {{ milestoneDueText(m) }}</div>
-              </div>
-              <htp-tag :type="milestoneTagType(m)">{{ m.dueDate }}</htp-tag>
+              {{ home.life.financeMonth.direction === 'up' ? '↑' : '↓' }} ¥{{ formatMoney(home.life.financeMonth.net) }}
+            </div>
+            <div class="home-card__hint">
+              收 ¥{{ formatMoney(home.life.financeMonth.income) }} · 支 ¥{{ formatMoney(home.life.financeMonth.expense) }}
             </div>
           </div>
-        </htp-card>
+        </div>
 
-        <!-- 最近备忘 -->
-        <htp-card title="最近备忘">
-          <div v-if="dataStore.statistics.recentMemos.length === 0">
-            <htp-empty text="暂无备忘记录"></htp-empty>
+        <!-- ===== 右栏：📚 知识组 ===== -->
+        <div class="home-col home-col--knowledge">
+          <div class="home-col__head">
+            <span class="home-col__icon">📚</span>
+            <span class="home-col__title">知识组</span>
           </div>
-          <div v-else>
-            <div
-              v-for="m in dataStore.statistics.recentMemos"
-              :key="m.id"
-              class="htp-list-item"
-            >
-              <span class="text-ellipsis flex-1">{{ m.content }}</span>
-              <span class="text-sm text-tertiary ml-sm hidden-xs">{{ formatDateTime(m.createdAt) }}</span>
-              <button
-                class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm ml-sm"
-                title="删除该备忘"
-                @click.stop="requestDeleteMemo(m)"
-              >删除</button>
+
+          <!-- 卡片1：本周沉淀 -->
+          <div class="home-card home-card--clickable" @click="goVault">
+            <div class="home-card__title">本周沉淀</div>
+            <div class="home-card__value home-card__value--accent">{{ home.knowledge.vaultWeek.total }}</div>
+            <div class="home-card__hint">
+              草稿 {{ home.knowledge.vaultWeek.draft }} · 已沉淀 {{ home.knowledge.vaultWeek.precipitated }}
             </div>
           </div>
-        </htp-card>
+
+          <!-- 卡片2：充电学习中 -->
+          <div class="home-card">
+            <div class="home-card__title">
+              <span>充电学习中</span>
+              <button class="home-card__viewall" @click.stop="goStudy">查看全部</button>
+            </div>
+            <div v-if="home.knowledge.studying.length === 0" class="home-card__empty">暂无待学资源</div>
+            <div v-else class="home-card__body">
+              <div
+                v-for="s in home.knowledge.studying"
+                :key="s.id"
+                class="home-card__row home-card--clickable"
+                @click="goStudy"
+              >
+                <div class="home-card__row-main">
+                  <div class="home-card__row-title">{{ s.title }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片3：推荐待写沉淀 -->
+          <div class="home-card">
+            <div class="home-card__title">
+              <span>推荐待写沉淀</span>
+              <button class="home-card__viewall" @click.stop="goReview">去复盘</button>
+            </div>
+            <div v-if="home.knowledge.recommendations.length === 0" class="home-card__empty">本周暂无值得沉淀的产出</div>
+            <div v-else class="home-card__body">
+              <div v-for="rec in home.knowledge.recommendations" :key="rec.sourceId" class="home-card__row">
+                <div class="home-card__row-main">
+                  <div class="home-card__row-title text-ellipsis">{{ rec.title }}</div>
+                </div>
+                <button
+                  class="htp-btn htp-btn--primary htp-btn--sm"
+                  @click.stop="genRecommend(rec)"
+                >生成</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <!-- 娱乐放松卡片组 -->
-      <div class="home-grid mt-base">
-        <!-- 娱乐统计 + 推荐 -->
-        <htp-card title="娱乐放松" class="ent-home-card" @click="goEntertainment">
-          <div v-if="entertainmentWantTotal() === 0">
-            <htp-empty text="还没有想玩/在玩的内容，去娱乐页添加吧"></htp-empty>
-          </div>
-          <div v-else>
-            <div class="ent-home-stats">
-              <div class="ent-home-stat">
-                <span class="ent-home-stat__num text-primary">{{ dataStore.statistics.entertainmentWantCount || 0 }}</span>
-                <span class="ent-home-stat__label">想看</span>
-              </div>
-              <div class="ent-home-stat">
-                <span class="ent-home-stat__num text-primary">{{ dataStore.statistics.entertainmentPlayingCount || 0 }}</span>
-                <span class="ent-home-stat__label">在玩</span>
-              </div>
-            </div>
-            <div v-if="recommend" class="ent-home-recommend">
-              <span class="text-tertiary text-sm">今日推荐：</span>
-              <span class="ent-home-recommend__name"><span v-html="entertainmentTypeIcon(recommend.type)"></span> {{ recommend.name }}</span>
-            </div>
-            <div v-else class="ent-home-recommend">
-              <span class="text-tertiary text-sm">点击进入娱乐页查看随机推荐</span>
-            </div>
-            <button class="htp-btn htp-btn--text htp-btn--sm mt-sm" @click.stop="loadRecommend"><span v-html="htdIcon('dice',{size:16})"></span> 换一条</button>
-          </div>
-        </htp-card>
-
-        <!-- 复盘中心入口 -->
-        <htp-card title="复盘与沉淀" class="ent-home-card" @click="goReview">
-          <div class="ent-home-review-tip">
-            <div class="ent-home-review-tip__icon" v-html="htdIcon('note',{size:20})"></div>
-            <div>
-              <div class="text-primary font-medium">周复盘 · 项目复盘</div>
-              <div class="text-sm text-tertiary mt-xs">沉淀亮点、踩坑、可复用经验，自动统计本周数据</div>
-            </div>
-          </div>
-        </htp-card>
-      </div>
-
-      <!-- 明日计划预览 -->
-      <htp-card title="明日计划预览" class="mt-base">
-        <div v-if="dataStore.statistics.tomorrowTodos.length === 0">
-          <htp-empty text="暂无明日计划"></htp-empty>
-        </div>
-        <div v-else>
-          <div
-            v-for="t in dataStore.statistics.tomorrowTodos"
-            :key="t.id"
-            class="htp-list-item"
-            @click="goTodo"
-          >
-            <htp-tag :type="priorityTag(t.priority)">{{ t.priority }}</htp-tag>
-            <span class="ml-md text-ellipsis flex-1">{{ t.title }}</span>
-            <htp-tag type="info">{{ t.category }}</htp-tag>
-          </div>
-        </div>
-      </htp-card>
-
-      <!-- 删除备忘二次确认弹窗 -->
-      <htp-modal
-        v-if="confirmDelMemo"
-        title="确认删除备忘？"
-        :visible="!!confirmDelMemo"
-        confirmText="确认删除"
-        confirmType="danger"
-        @confirm="confirmDoDeleteMemo"
-        @cancel="cancelDeleteMemo"
-      >
-        <div class="py-sm">
-          <div class="text-tertiary mb-xs">删除后不可恢复，确定要删除以下备忘吗？</div>
-          <div class="text-primary font-medium bg-bg-tertiary rounded p-sm text-ellipsis">
-            {{ confirmDelMemo.content }}
-          </div>
-        </div>
-      </htp-modal>
     </div>
   `,
 };

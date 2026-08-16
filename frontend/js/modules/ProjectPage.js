@@ -26,6 +26,16 @@ const SECURITY_DOMAIN_OPTIONS = [
   { label: '其他', value: '其他' },
 ];
 
+// 6 阶段状态机合法迁移（与后端 PROJECT_PHASE_TRANSITIONS 保持一致，§6.2.2）
+const PROJECT_PHASE_TRANSITIONS = {
+  '需求沟通': ['方案撰写', 'POC演示', '项目结项', '需求沟通'],
+  '方案撰写': ['POC演示', '投标答辩', '项目结项', '方案撰写'],
+  'POC演示': ['投标答辩', '交付跟进', '项目结项', 'POC演示'],
+  '投标答辩': ['交付跟进', '项目结项', '投标答辩'],
+  '交付跟进': ['项目结项', '交付跟进'],
+  '项目结项': ['需求沟通'], // 结项后可重开
+};
+
 const ProjectPage = {
   name: 'ProjectPage',
   setup() {
@@ -332,6 +342,42 @@ const ProjectPage = {
       } catch (e) { /* toast 已显示 */ }
     }
 
+    // ============ 项目阶段切换（6 阶段状态机） ============
+    const phaseSwitchModal = Vue.ref(false);
+    const phaseForm = Vue.reactive({ phase: '', reason: '' });
+    // 当前阶段可切换到的「下一阶段」（排除自身这个 no-op 选项）
+    const nextPhaseOptions = Vue.computed(() => {
+      if (!detail.value) return [];
+      const allowed = PROJECT_PHASE_TRANSITIONS[detail.value.phase] || [];
+      return allowed
+        .filter(p => p !== detail.value.phase)
+        .map(p => ({ label: p, value: p }));
+    });
+    const canSwitchPhase = Vue.computed(() => nextPhaseOptions.value.length > 0);
+    const isClosingPhase = Vue.computed(() => {
+      // 即将结项：交付跟进 → 项目结项 会触发自动生成复盘
+      return detail.value
+        && detail.value.phase === '交付跟进'
+        && phaseForm.phase === '项目结项';
+    });
+    function openPhaseSwitch() {
+      if (!detail.value) return;
+      phaseForm.phase = nextPhaseOptions.value.length ? nextPhaseOptions.value[0].value : '';
+      phaseForm.reason = '';
+      phaseSwitchModal.value = true;
+    }
+    function closePhaseSwitch() { phaseSwitchModal.value = false; }
+    async function confirmPhaseSwitch() {
+      if (!detail.value) return;
+      if (!phaseForm.phase) { showToast('请选择目标阶段', 'warning'); return; }
+      try {
+        await dataStore.changeProjectPhase(detail.value.id, phaseForm.phase, phaseForm.reason || null);
+        phaseSwitchModal.value = false;
+        await loadDetail();
+        await loadList();
+      } catch (e) { /* toast 已显示 */ }
+    }
+
     // ============ 杂项辅助 ============
     function priorityType(p) {
       return p === '高' ? 'danger' : p === '中' ? 'warning' : 'default';
@@ -368,8 +414,9 @@ const ProjectPage = {
       delConfirm,
       milestoneFormVisible, editingMilestone, milestoneForm, delMilestoneConfirm,
       newTaskName, delTaskConfirm, reviewConfirm,
+      phaseSwitchModal, phaseForm, nextPhaseOptions, canSwitchPhase, isClosingPhase,
       // options
-      PROJECT_PHASE_OPTIONS, PROJECT_PRIORITY_OPTIONS, SECURITY_DOMAIN_OPTIONS,
+      PROJECT_PHASE_OPTIONS, PROJECT_PRIORITY_OPTIONS, SECURITY_DOMAIN_OPTIONS, PROJECT_PHASE_TRANSITIONS,
       // actions
       loadList, resetFilters, selectProject, loadDetail,
       openCreate, openEdit, closeForm, submitForm,
@@ -379,6 +426,7 @@ const ProjectPage = {
       toggleMilestone, requestDeleteMilestone, cancelDeleteMilestone, confirmDoDeleteMilestone,
       addTask, toggleTask, requestDeleteTask, cancelDeleteTask, confirmDoDeleteTask,
       requestGenerateReview, cancelGenerateReview, confirmDoGenerateReview,
+      openPhaseSwitch, closePhaseSwitch, confirmPhaseSwitch,
       // helpers
       priorityType, phaseTagType, domainText, progressColor,
       milestoneTagType, milestoneDueText, todayStr,
@@ -454,6 +502,9 @@ const ProjectPage = {
                 <htp-tag :type="priorityType(detail.priority)">{{ detail.priority }}优</htp-tag>
               </div>
               <div class="flex gap-xs">
+                <button class="htp-btn htp-btn--primary htp-btn--sm" :disabled="!canSwitchPhase" @click="openPhaseSwitch(detail)">
+                  <span v-html="htdIcon('switch',{size:14})"></span> 切换阶段
+                </button>
                 <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="openEdit(detail)">编辑</button>
                 <button class="htp-btn htp-btn--danger htp-btn--sm" @click="requestDelete(detail)">删除</button>
               </div>
@@ -722,6 +773,38 @@ const ProjectPage = {
             <div class="text-sm text-tertiary mt-xs">阶段：{{ reviewConfirm.phase }} · 进度：{{ reviewConfirm.progress }}%</div>
           </div>
           <div class="text-sm text-tertiary mt-sm">生成后可前往「复盘与沉淀」模块继续编辑详细内容。</div>
+        </div>
+      </htp-modal>
+
+      <!-- 项目阶段切换（6 阶段状态机） -->
+      <htp-modal
+        v-if="phaseSwitchModal"
+        :visible="phaseSwitchModal"
+        title="切换项目阶段"
+        width="460px"
+        confirmText="确认切换"
+        @confirm="confirmPhaseSwitch"
+        @cancel="closePhaseSwitch"
+      >
+        <div class="py-sm">
+          <div class="mb-sm flex align-center gap-sm">
+            <span class="text-tertiary">当前阶段：</span>
+            <htp-tag :type="phaseTagType(detail.phase)">{{ detail.phase }}</htp-tag>
+          </div>
+          <div class="form-item" v-if="canSwitchPhase">
+            <label class="form-item__label">切换至 <span class="text-danger">*</span></label>
+            <htp-select v-model="phaseForm.phase" :options="nextPhaseOptions" placeholder="请选择目标阶段" />
+          </div>
+          <div class="form-item mt-sm">
+            <label class="form-item__label">变更说明（可选）</label>
+            <textarea v-model="phaseForm.reason" class="htp-textarea" rows="3" placeholder="记录本阶段推进情况或切换原因..."></textarea>
+          </div>
+          <div v-if="isClosingPhase" class="text-sm text-warning mt-sm">
+            ⚠️ 即将结项，切换后将自动生成一份项目复盘草稿，可在「复盘与沉淀」模块继续完善。
+          </div>
+          <div v-if="!canSwitchPhase" class="text-sm text-tertiary mt-sm">
+            当前阶段「{{ detail.phase }}」无更多可切换阶段（结项后仅可重开）。
+          </div>
         </div>
       </htp-modal>
     </div>

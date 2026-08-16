@@ -24,6 +24,9 @@ const useDataStore = Pinia.defineStore('data', {
 
     // 各模块数据条目统计
     dataStats: [],
+
+    // 首页三栏聚合数据（V1.3 §6.1）
+    homeSummary: null,
   }),
 
   actions: {
@@ -36,6 +39,24 @@ const useDataStore = Pinia.defineStore('data', {
       } catch (err) {
         console.error('获取统计数据失败:', err);
       }
+    },
+
+    // 拉取首页三栏聚合数据（V1.3 §6.1）
+    async fetchHomeSummary() {
+      try {
+        const data = await htdApi.get('/system/home-summary');
+        this.homeSummary = data;
+      } catch (err) {
+        console.error('获取首页三栏数据失败:', err);
+      }
+    },
+
+    // 首页知识栏「一键生成沉淀草稿」（§6.8.5）
+    async autoRecommendVault(candidate) {
+      const r = await htdApi.post('/system/home-recommend', candidate);
+      showToast('沉淀草稿已生成', 'success');
+      await this.fetchHomeSummary();
+      return r;
     },
 
     // 拉取最近备忘
@@ -63,6 +84,7 @@ const useDataStore = Pinia.defineStore('data', {
       const appStore = useAppStore();
       await Promise.all([
         this.fetchStatistics(),
+        this.fetchHomeSummary(),
         appStore.refreshDataCount(),
       ]);
     },
@@ -116,6 +138,22 @@ const useDataStore = Pinia.defineStore('data', {
     // 切换完成状态
     async toggleTodo(id) {
       return htdApi.post(`/todos/${id}/toggle`);
+    },
+
+    // 延期任务（切 DELAYED + 顺延 todoDate，§6.2.1）
+    async delayTodo(id, payload) {
+      const r = await htdApi.post(`/todos/${id}/delay`, payload);
+      showToast('已延期', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // 直接切换任务状态（走状态机校验，§6.2.1）
+    async changeTodoStatus(id, status) {
+      const r = await htdApi.post(`/todos/${id}/status`, { status });
+      showToast('状态已更新', 'success');
+      await this.refreshAll();
+      return r;
     },
 
     // 今日未完成 → 明日
@@ -178,6 +216,14 @@ const useDataStore = Pinia.defineStore('data', {
     async generateProjectReview(id) {
       const r = await htdApi.post(`/projects/${id}/generate-review`);
       showToast(r.created === false ? '已存在复盘草稿' : '复盘草稿已生成', 'success');
+      return r;
+    },
+
+    // 项目阶段切换（走 6 阶段状态机校验，§6.2.2）
+    async changeProjectPhase(id, phase, reason) {
+      const r = await htdApi.post(`/projects/${id}/phase`, { phase, reason });
+      showToast('阶段已更新', 'success');
+      await this.refreshAll();
       return r;
     },
 
@@ -415,6 +461,20 @@ const useDataStore = Pinia.defineStore('data', {
       showToast(r.created === false ? '本周周复盘已存在' : '本周周复盘已生成', 'success');
       return r;
     },
+    // 提交复盘（draft → submitted，自动生成 Vault 草稿）
+    async reviewSubmit(id) {
+      const r = await htdApi.post(`/reviews/${id}/submit`);
+      showToast('复盘已提交，沉淀草稿已生成', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    // 生成沉淀（submitted → precipitated）
+    async reviewPrecipitate(id) {
+      const r = await htdApi.post(`/reviews/${id}/precipitate`);
+      showToast('沉淀已生成', 'success');
+      await this.refreshAll();
+      return r;
+    },
 
     // ============ 凭据保险箱模块 ============
     async fetchSecrets(query = {}) {
@@ -464,6 +524,142 @@ const useDataStore = Pinia.defineStore('data', {
       await htdApi.del(`/deployments/${id}`);
       showToast('部署记录已删除', 'success');
       await this.refreshAll();
+    },
+
+    // ============ 会议纪要模块 ============
+    async createMeeting(payload) {
+      const r = await htdApi.post('/meetings', payload);
+      await this.refreshAll();
+      return r;
+    },
+    async updateMeeting(id, payload) {
+      const r = await htdApi.put(`/meetings/${id}`, payload);
+      await this.refreshAll();
+      return r;
+    },
+    async deleteMeeting(id) {
+      await htdApi.del(`/meetings/${id}`);
+      await this.refreshAll();
+    },
+    async generateMeetingReview(id) {
+      const r = await htdApi.post(`/meetings/${id}/generate-review`);
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 习惯打卡模块 ============
+    async createHabit(payload) {
+      const r = await htdApi.post('/habits', payload);
+      await this.refreshAll();
+      return r;
+    },
+    async updateHabit(id, payload) {
+      const r = await htdApi.put(`/habits/${id}`, payload);
+      await this.refreshAll();
+      return r;
+    },
+    async deleteHabit(id) {
+      await htdApi.del(`/habits/${id}`);
+      await this.refreshAll();
+    },
+    async checkInHabit(id, payload) {
+      const r = await htdApi.post(`/habits/${id}/checkin`, payload);
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 时间块模块 ============
+    async createTimeBlock(payload) {
+      const r = await htdApi.post('/time-blocks', payload);
+      await this.refreshAll();
+      return r;
+    },
+    async startTimeBlock(payload) {
+      const r = await htdApi.post('/time-blocks/start', payload);
+      await this.refreshAll();
+      return r;
+    },
+    async stopTimeBlock(id, payload) {
+      const r = await htdApi.post(`/time-blocks/${id}/stop`, payload);
+      await this.refreshAll();
+      return r;
+    },
+    async deleteTimeBlock(id) {
+      await htdApi.del(`/time-blocks/${id}`);
+      await this.refreshAll();
+    },
+
+    // ============ 财务收支模块 ============
+    async createFinance(payload) {
+      const r = await htdApi.post('/finances', payload);
+      await this.refreshAll();
+      return r;
+    },
+    async updateFinance(id, payload) {
+      const r = await htdApi.put(`/finances/${id}`, payload);
+      await this.refreshAll();
+      return r;
+    },
+    async deleteFinance(id) {
+      await htdApi.del(`/finances/${id}`);
+      await this.refreshAll();
+    },
+
+    // ============ 合同回款模块 ============
+    async createFinanceContract(payload) {
+      const r = await htdApi.post('/finance-contracts', payload);
+      await this.refreshAll();
+      return r;
+    },
+    async updateFinanceContract(id, payload) {
+      const r = await htdApi.put(`/finance-contracts/${id}`, payload);
+      await this.refreshAll();
+      return r;
+    },
+    async deleteFinanceContract(id) {
+      await htdApi.del(`/finance-contracts/${id}`);
+      await this.refreshAll();
+    },
+    async updateContractNode(id, nodeIndex, payload) {
+      const r = await htdApi.post(`/finance-contracts/${id}/nodes/${nodeIndex}`, payload);
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 沉淀 Vault 模块 ============
+    async createVaultItem(payload) {
+      const r = await htdApi.post('/vaults', payload);
+      await this.refreshAll();
+      return r;
+    },
+    async updateVaultItem(id, payload) {
+      const r = await htdApi.put(`/vaults/${id}`, payload);
+      await this.refreshAll();
+      return r;
+    },
+    async deleteVaultItem(id) {
+      await htdApi.del(`/vaults/${id}`);
+      await this.refreshAll();
+    },
+
+    // ============ 回收站模块 ============
+    async fetchRecycleBin() {
+      return htdApi.get('/system/recycle-bin');
+    },
+    async restoreRecycleBinItem(model, id) {
+      const r = await htdApi.post('/system/recycle-bin/restore', { model, id });
+      await this.refreshAll();
+      return r;
+    },
+    async permanentlyDeleteRecycleBinItem(model, id) {
+      const r = await htdApi.del(`/system/recycle-bin/${model}/${id}`);
+      await this.refreshAll();
+      return r;
+    },
+    async emptyRecycleBin() {
+      const r = await htdApi.del('/system/recycle-bin/empty');
+      await this.refreshAll();
+      return r;
     },
   },
 });

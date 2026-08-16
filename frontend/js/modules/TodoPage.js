@@ -145,6 +145,58 @@ const TodoPage = {
       } catch (e) { /* toast 已显示 */ }
     }
 
+    // 标记进行中（pending → in_progress，走状态机）
+    async function markInProgress(todo) {
+      try {
+        await dataStore.changeTodoStatus(todo.id, 'in_progress');
+        await loadList();
+      } catch (e) { /* toast 已显示 */ }
+    }
+
+    // ============ 延期弹窗（§6.2.1） ============
+    const delayModal = Vue.ref(null);
+    const delayMode = Vue.ref('tomorrow'); // tomorrow / date
+    const delayToDate = Vue.ref('');
+    const minDelayDate = Vue.computed(() => htdDate.tomorrow());
+    function openDelay(todo) {
+      delayModal.value = todo;
+      delayMode.value = 'tomorrow';
+      delayToDate.value = '';
+    }
+    function closeDelay() { delayModal.value = null; }
+    async function confirmDelay() {
+      if (!delayModal.value) return;
+      let payload = {};
+      if (delayMode.value === 'date') {
+        if (!delayToDate.value) { showToast('请选择延期日期', 'warning'); return; }
+        payload = { toDate: delayToDate.value };
+      }
+      try {
+        await dataStore.delayTodo(delayModal.value.id, payload);
+        delayModal.value = null;
+        await loadList();
+      } catch (e) { /* toast 已显示 */ }
+    }
+    // 是否可延期（已完成 / 已取消不可延期）
+    function canDelay(todo) {
+      return todo && todo.status !== 'completed' && todo.status !== 'cancelled';
+    }
+    // 状态标签 / 状态点颜色
+    function statusLabel(s) {
+      if (s === 'in_progress') return '进行中';
+      if (s === 'delayed') return '已延期';
+      if (s === 'cancelled') return '已取消';
+      if (s === 'completed') return '已完成';
+      return '未完成';
+    }
+    function statusDotColor(s) {
+      if (s === 'in_progress') return 'var(--status-in_progress)';
+      if (s === 'delayed') return 'var(--status-delayed)';
+      if (s === 'cancelled') return 'var(--status-cancelled)';
+      if (s === 'completed') return 'var(--status-completed)';
+      return 'var(--status-pending)';
+    }
+
     // ============ 删除 ============
     const delConfirm = Vue.ref(null);
     function requestDelete(todo) { delConfirm.value = todo; }
@@ -218,10 +270,13 @@ const TodoPage = {
       TODO_CATEGORY_OPTIONS, TODO_PRIORITY_OPTIONS, TODO_STATUS_OPTIONS,
       // actions
       openCreate, openEdit, closeForm, submitForm,
-      handleToggle, requestDelete, cancelDelete, confirmDoDelete,
+      handleToggle, markInProgress, requestDelete, cancelDelete, confirmDoDelete,
+      openDelay, closeDelay, confirmDelay, canDelay,
       requestMigrateTodayToTomorrow, requestMigrateTomorrowToToday, cancelMigrate, confirmDoMigrate,
-      priorityType, resetFilters,
+      priorityType, resetFilters, statusLabel, statusDotColor,
       formatDateTime, tomorrowStr, todayStr,
+      // delay modal state
+      delayModal, delayMode, delayToDate, minDelayDate,
     };
   },
   template: `
@@ -330,6 +385,10 @@ const TodoPage = {
                   <div class="flex items-center flex-wrap gap-xs">
                     <htp-tag :type="priorityType(todo.priority)">{{ todo.priority }}优</htp-tag>
                     <htp-tag type="info">{{ todo.category }}</htp-tag>
+                    <htp-tag
+                      v-if="todo.status !== 'pending'"
+                      :type="todo.status === 'completed' ? 'success' : (todo.status === 'delayed' ? 'warning' : 'default')"
+                    >{{ statusLabel(todo.status) }}</htp-tag>
                     <span
                       class="text-primary ml-xs text-ellipsis flex-1"
                       :class="{ 'todo-list-item__title--done': todo.status === 'completed' }"
@@ -341,12 +400,25 @@ const TodoPage = {
                     <span v-if="todo.status === 'completed' && todo.completedAt" class="text-success">
                       完成于 {{ formatDateTime(todo.completedAt) }}
                     </span>
+                    <span v-if="todo.status === 'delayed' && todo.delayedUntil" class="text-warning">
+                      延期至 {{ todo.delayedUntil }}
+                    </span>
                     <span v-if="todo.remark" class="todo-list-item__remark text-ellipsis">
                       备注：{{ todo.remark }}
                     </span>
                   </div>
                 </div>
                 <div class="ml-sm flex items-center gap-xs">
+                  <button
+                    v-if="todo.status === 'pending'"
+                    class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm"
+                    @click="markInProgress(todo)"
+                  >进行中</button>
+                  <button
+                    v-if="canDelay(todo)"
+                    class="htp-btn htp-btn--text htp-btn--warning htp-btn--sm"
+                    @click="openDelay(todo)"
+                  >延期</button>
                   <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="openEdit(todo)">编辑</button>
                   <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click="requestDelete(todo)">删除</button>
                 </div>
@@ -448,6 +520,34 @@ const TodoPage = {
           <p v-else>
             将迁移明日所有 <span class="text-primary font-medium">{{ migrateConfirm.count }}</span> 条计划任务（无论状态）到今日（{{ todayStr() }}）。
           </p>
+        </div>
+      </htp-modal>
+
+      <!-- 延期弹窗（§6.2.1） -->
+      <htp-modal
+        v-if="delayModal"
+        :visible="!!delayModal"
+        title="延期任务"
+        confirmText="确认延期"
+        confirmType="warning"
+        @cancel="closeDelay"
+        @confirm="confirmDelay"
+      >
+        <div class="py-sm">
+          <div class="text-tertiary mb-base">
+            将「{{ delayModal.title }}」延期，状态切为「已延期」，并从当前日期列表移出。
+          </div>
+          <div class="form-item mb-base">
+            <label class="form-item__label">延期方式</label>
+            <htp-select
+              v-model="delayMode"
+              :options="[{label:'延期到明天（'+minDelayDate+'）',value:'tomorrow'},{label:'延期到指定日期',value:'date'}]"
+            ></htp-select>
+          </div>
+          <div class="form-item" v-if="delayMode === 'date'">
+            <label class="form-item__label">选择日期</label>
+            <input type="date" class="htp-input" v-model="delayToDate" :min="minDelayDate" />
+          </div>
         </div>
       </htp-modal>
     </div>
