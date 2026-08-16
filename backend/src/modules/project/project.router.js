@@ -13,5 +13,6 @@ router.put('/:id', projectController.update);
 router.patch('/:id/memo', projectController.updateMemo);
 router.delete('/:id', projectController.remove);
 router.post('/:id/generate-review', projectController.generateReview);
+router.post('/:id/phase', projectController.changePhase);
 
 export default router;

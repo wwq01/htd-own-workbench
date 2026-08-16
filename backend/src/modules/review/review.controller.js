@@ -48,6 +48,26 @@ class ReviewController {
       res.success(result, result.created ? '本周周复盘已创建' : '本周周复盘已存在');
     } catch (err) { next(err); }
   }
+
+  /**
+   * POST /api/v1/reviews/:id/submit  提交复盘（draft → submitted）
+   */
+  async submit(req, res, next) {
+    try {
+      const result = await reviewService.submit(req.params.id);
+      res.success(result, '复盘已提交，沉淀草稿已生成');
+    } catch (err) { next(err); }
+  }
+
+  /**
+   * POST /api/v1/reviews/:id/precipitate  生成沉淀（submitted → precipitated）
+   */
+  async precipitate(req, res, next) {
+    try {
+      const result = await reviewService.precipitate(req.params.id);
+      res.success(result, '沉淀已生成');
+    } catch (err) { next(err); }
+  }
 }
 
 export default new ReviewController();

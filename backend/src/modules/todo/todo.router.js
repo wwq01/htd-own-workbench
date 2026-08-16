@@ -12,6 +12,8 @@ router.post('/', todoController.create);
 router.put('/:id', todoController.update);
 router.delete('/:id', todoController.remove);
 router.post('/:id/toggle', todoController.toggleStatus);
+router.post('/:id/delay', todoController.delay);
+router.post('/:id/status', todoController.changeStatus);
 router.post('/migrate/today-to-tomorrow', todoController.migrateTodayToTomorrow);
 router.post('/migrate/tomorrow-to-today', todoController.migrateTomorrowToToday);
 router.post('/migrate', todoController.migrateCustom);

@@ -27,6 +27,12 @@ import entertainmentRouter from './modules/entertainment/entertainment.router.js
 import reviewRouter from './modules/review/review.router.js';
 import secretRouter from './modules/secret/secret.router.js';
 import deploymentRouter from './modules/deployment/deployment.router.js';
+import meetingRouter from './modules/meeting/meeting.router.js';
+import habitRouter from './modules/habit/habit.router.js';
+import timeBlockRouter from './modules/time-block/time-block.router.js';
+import financeRouter from './modules/finance/finance.router.js';
+import financeContractRouter from './modules/finance-contract/finance-contract.router.js';
+import vaultRouter from './modules/vault/vault.router.js';
 import logger from './common/logger.js';
 
 function createApp() {
@@ -81,6 +87,12 @@ function createApp() {
   app.use(`${appConfig.apiPrefix}/reviews`, reviewRouter);
   app.use(`${appConfig.apiPrefix}/secrets`, secretRouter);
   app.use(`${appConfig.apiPrefix}/deployments`, deploymentRouter);
+  app.use(`${appConfig.apiPrefix}/meetings`, meetingRouter);
+  app.use(`${appConfig.apiPrefix}/habits`, habitRouter);
+  app.use(`${appConfig.apiPrefix}/time-blocks`, timeBlockRouter);
+  app.use(`${appConfig.apiPrefix}/finances`, financeRouter);
+  app.use(`${appConfig.apiPrefix}/finance-contracts`, financeContractRouter);
+  app.use(`${appConfig.apiPrefix}/vaults`, vaultRouter);
 
   // ===== 前端静态资源托管 =====
   const frontendDir = appConfig.frontendDir;

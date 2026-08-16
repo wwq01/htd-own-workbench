@@ -66,6 +66,28 @@ class TodoController {
   }
 
   /**
+   * POST /api/v1/todos/:id/delay  延期（§6.2.1 任务 5 态）
+   * body: { toDate? } 不传默认延期到明天
+   */
+  async delay(req, res, next) {
+    try {
+      const todo = await todoService.delayTodo(req.params.id, req.body || {});
+      res.success(todo, '已延期');
+    } catch (err) { next(err); }
+  }
+
+  /**
+   * POST /api/v1/todos/:id/status  通用状态切换（受 5 态状态机约束）
+   * body: { status }
+   */
+  async changeStatus(req, res, next) {
+    try {
+      const todo = await todoService.changeStatus(req.params.id, (req.body || {}).status);
+      res.success(todo, '状态已更新');
+    } catch (err) { next(err); }
+  }
+
+  /**
    * POST /api/v1/todos/migrate/today-to-tomorrow  今日未完成→明日
    */
   async migrateTodayToTomorrow(req, res, next) {

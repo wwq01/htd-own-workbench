@@ -74,6 +74,17 @@ class ProjectController {
       res.success(result, result.created ? '复盘草稿已生成' : '已存在复盘草稿');
     } catch (err) { next(err); }
   }
+
+  /**
+   * POST /api/v1/projects/:id/phase  项目阶段切换（受 6 阶段状态机约束）
+   * body: { phase, reason? }
+   */
+  async changePhase(req, res, next) {
+    try {
+      const result = await projectService.changePhase(req.params.id, (req.body || {}).phase, (req.body || {}).reason);
+      res.success(result, '阶段已更新');
+    } catch (err) { next(err); }
+  }
 }
 
 export default new ProjectController();

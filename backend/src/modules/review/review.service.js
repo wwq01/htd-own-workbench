@@ -3,6 +3,7 @@
  */
 import reviewRepository from './review.repository.js';
 import prisma from '../../database/prisma.js';
+import vaultService from '../vault/vault.service.js';
 import {
   createReviewSchema,
   updateReviewSchema,
@@ -11,7 +12,8 @@ import {
 } from './review.schema.js';
 import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
-import { REVIEW_TYPE } from '../../common/constants/enums.js';
+import { REVIEW_TYPE, REVIEW_STATUS, REVIEW_STATUS_TRANSITIONS } from '../../common/constants/enums.js';
+import { createStateMachine } from '../../lib/stateMachine.js';
 import { getWeekKey, startOfWeek, endOfWeek, formatDate, today } from '../../common/utils/date.js';
 
 class ReviewService {
@@ -33,6 +35,67 @@ class ReviewService {
       remark: this._normalizeText(data.remark),
       sortOrder: data.sortOrder ?? 0,
     });
+  }
+
+  /**
+   * 推导沉淀来源类型（§6.8.2）
+   * 优先用 review.vaultSourceType（会议纪要/项目复盘生成时已写入），
+   * 否则按 type 推导：week → WEEKLY_REVIEW，project(含项目) → PROJECT_REVIEW，其余 → MEETING_REVIEW
+   */
+  _deriveVaultSourceType(review) {
+    if (review && review.vaultSourceType) return review.vaultSourceType;
+    if (review && review.type === 'week') return 'WEEKLY_REVIEW';
+    if (review && review.type === 'project' && review.projectId) return 'PROJECT_REVIEW';
+    return 'MEETING_REVIEW';
+  }
+
+  /**
+   * 推导沉淀草稿标题
+   */
+  _deriveVaultTitle(review) {
+    const base = (review && review.remark) || (review && review.type === 'week' ? '周复盘' : '项目复盘');
+    return `${base} → 沉淀草稿（自动生成）`;
+  }
+
+  /**
+   * 提交复盘：draft → submitted（§6.2.3）
+   * 提交后自动生成 Vault 沉淀草稿（§6.8.2）
+   */
+  async submit(id) {
+    reviewIdSchema.parse({ id });
+    const exists = await reviewRepository.findById(id);
+    if (!exists) {
+      throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '复盘不存在');
+    }
+    const sm = createStateMachine({ name: 'ReviewStatus', ALLOWED_TRANSITIONS: REVIEW_STATUS_TRANSITIONS });
+    await sm.transition(exists.status, REVIEW_STATUS.SUBMITTED);
+    await reviewRepository.updateById(id, { status: REVIEW_STATUS.SUBMITTED });
+    const sourceType = this._deriveVaultSourceType(exists);
+    const vaultItem = await vaultService.autoCreateFromReview({
+      sourceType,
+      reviewId: id,
+      sourceUrl: `#/review/${id}`,
+      title: this._deriveVaultTitle(exists),
+    });
+    return { id, status: REVIEW_STATUS.SUBMITTED, vaultItem };
+  }
+
+  /**
+   * 生成沉淀：submitted → precipitated（§6.2.3）
+   * 同时将关联的 Vault 沉淀草稿置为 PRECIPITATED（§6.8.2）
+   */
+  async precipitate(id) {
+    reviewIdSchema.parse({ id });
+    const exists = await reviewRepository.findById(id);
+    if (!exists) {
+      throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '复盘不存在');
+    }
+    const sm = createStateMachine({ name: 'ReviewStatus', ALLOWED_TRANSITIONS: REVIEW_STATUS_TRANSITIONS });
+    await sm.transition(exists.status, REVIEW_STATUS.PRECIPITATED);
+    await reviewRepository.updateById(id, { status: REVIEW_STATUS.PRECIPITATED });
+    const sourceType = this._deriveVaultSourceType(exists);
+    const vaultItem = await vaultService.markPrecipitatedBySource(sourceType, id);
+    return { id, status: REVIEW_STATUS.PRECIPITATED, vaultItem };
   }
 
   async update(payload) {
@@ -148,6 +211,7 @@ class ReviewService {
       type: REVIEW_TYPE.WEEK,
       weekKey,
       autoData,
+      vaultSourceType: 'WEEKLY_REVIEW',
       highlights: payload.highlights || null,
       pitfalls: payload.pitfalls || null,
       reusableExperience: payload.reusableExperience || null,

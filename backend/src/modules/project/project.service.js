@@ -11,7 +11,8 @@ import {
 } from './project.schema.js';
 import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
-import { REVIEW_TYPE } from '../../common/constants/enums.js';
+import { REVIEW_TYPE, PROJECT_PHASE_TRANSITIONS } from '../../common/constants/enums.js';
+import { createStateMachine } from '../../lib/stateMachine.js';
 
 class ProjectService {
   /**
@@ -54,7 +55,8 @@ class ProjectService {
 
     const updateData = {};
     if ('customerName' in fields) updateData.customerName = fields.customerName;
-    if ('phase' in fields) updateData.phase = fields.phase;
+    // phase 变更走受控 changePhase（校验 + 写阶段历程），不在 update 直接改
+    const phaseChanged = 'phase' in fields && fields.phase && fields.phase !== exists.phase;
     if ('priority' in fields) updateData.priority = fields.priority;
     if ('securityDomains' in fields) {
       updateData.securityDomains = JSON.stringify(fields.securityDomains || []);
@@ -68,7 +70,47 @@ class ProjectService {
     if ('expectedEndDate' in fields) updateData.expectedEndDate = this._normalizeText(fields.expectedEndDate);
     if ('sortOrder' in fields) updateData.sortOrder = fields.sortOrder;
 
-    const updated = await projectRepository.updateById(id, updateData);
+    let updated = await projectRepository.updateById(id, updateData);
+    if (phaseChanged) {
+      updated = await this.changePhase(id, fields.phase, fields.phaseReason);
+    }
+    return this._normalizeProject(updated);
+  }
+
+  /**
+   * 项目阶段切换（受 6 阶段状态机约束，§6.2.2）
+   * 每次切换必写一条 ProjectPhaseTransition 记录；非法迁移抛 BusinessError。
+   * 交付跟进 → 项目结项 时自动生成项目复盘草稿（§6.3.4）。
+   */
+  async changePhase(id, toPhase, reason) {
+    projectIdSchema.parse({ id });
+    const exists = await projectRepository.findById(id);
+    if (!exists) {
+      throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '项目不存在');
+    }
+    const fromPhase = exists.phase;
+    if (fromPhase === toPhase) {
+      return this._normalizeProject(exists);
+    }
+    const allowed = PROJECT_PHASE_TRANSITIONS[fromPhase] || [];
+    if (!allowed.includes(toPhase)) {
+      throw new BusinessError(
+        ErrorCodes.PARAM_ERROR,
+        `非法的项目阶段迁移「${fromPhase} → ${toPhase}」`,
+      );
+    }
+    const updated = await projectRepository.updateById(id, { phase: toPhase });
+    await prisma.projectPhaseTransition.create({
+      data: { projectId: id, fromPhase, toPhase, reason: reason || null },
+    });
+    // 结项钩子：交付跟进 → 项目结项 自动生成项目复盘草稿
+    if (fromPhase === '交付跟进' && toPhase === '项目结项') {
+      try {
+        await this.generateReview(id);
+      } catch (e) {
+        // 已存在复盘草稿则忽略
+      }
+    }
     return this._normalizeProject(updated);
   }
 
@@ -206,6 +248,7 @@ class ProjectService {
         type: REVIEW_TYPE.PROJECT,
         projectId: project.id,
         autoData,
+        vaultSourceType: 'PROJECT_REVIEW',
         // 项目复盘模板字段（先留空，由用户填写）
         customerPainPoints: null,
         presentationHighlights: null,

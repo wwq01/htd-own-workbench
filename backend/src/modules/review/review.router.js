@@ -10,6 +10,8 @@ router.get('/', reviewController.list);
 router.get('/:id', reviewController.getById);
 router.post('/', reviewController.create);
 router.post('/current-week', reviewController.createCurrentWeek);
+router.post('/:id/submit', reviewController.submit);
+router.post('/:id/precipitate', reviewController.precipitate);
 router.put('/:id', reviewController.update);
 router.delete('/:id', reviewController.remove);
 

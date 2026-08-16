@@ -148,6 +148,79 @@ class SystemController {
       next(err);
     }
   }
+
+  /**
+   * 回收站列表
+   * GET /api/v1/system/recycle-bin
+   */
+  async getRecycleBin(req, res, next) {
+    try {
+      res.success(await systemService.getRecycleBin());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 恢复回收站条目
+   * POST /api/v1/system/recycle-bin/restore
+   */
+  async restoreRecycleBinItem(req, res, next) {
+    try {
+      const { model, id } = req.body || {};
+      res.success(await systemService.restoreRecycleBinItem(model, id));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 永久删除回收站条目
+   * DELETE /api/v1/system/recycle-bin/:model/:id
+   */
+  async permanentlyDeleteRecycleBinItem(req, res, next) {
+    try {
+      res.success(await systemService.permanentlyDeleteRecycleBinItem(req.params.model, req.params.id));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 清空回收站
+   * DELETE /api/v1/system/recycle-bin/empty
+   */
+  async emptyRecycleBin(req, res, next) {
+    try {
+      res.success(await systemService.emptyRecycleBin());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 首页三栏数据聚合
+   * GET /api/v1/system/home-summary
+   */
+  async getHomeSummary(req, res, next) {
+    try {
+      res.success(await systemService.getHomeSummary());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 首页推荐「一键生成沉淀草稿」
+   * POST /api/v1/system/home-recommend
+   */
+  async autoRecommendVault(req, res, next) {
+    try {
+      res.success(await systemService.autoRecommendVault(req.body || {}));
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export default new SystemController();

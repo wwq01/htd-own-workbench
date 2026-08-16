@@ -28,6 +28,7 @@ export const updateProjectSchema = z.object({
   id: z.string().min(1, 'ID 不能为空'),
   customerName: z.string().min(1, '客户名称不能为空').max(100).optional(),
   phase: z.enum(PHASE_VALUES).optional(),
+  phaseReason: z.string().max(500, '阶段切换原因最多 500 字符').nullable().optional().or(z.literal('')),
   securityDomains: z.array(z.enum(SECURITY_DOMAIN_VALUES)).optional(),
   priority: z.enum(PRIORITY_VALUES).optional(),
   background: z.string().max(2000).nullable().optional().or(z.literal('')),

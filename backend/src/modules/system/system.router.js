@@ -27,4 +27,14 @@ router.delete('/backups/:fileName', systemController.removeBackup);
 router.get('/settings', systemController.getSettings);
 router.put('/settings', systemController.updateSettings);
 
+// 回收站（V1.3）
+router.get('/recycle-bin', systemController.getRecycleBin);
+router.post('/recycle-bin/restore', systemController.restoreRecycleBinItem);
+router.delete('/recycle-bin/:model/:id', systemController.permanentlyDeleteRecycleBinItem);
+router.delete('/recycle-bin/empty', systemController.emptyRecycleBin);
+
+// 首页三栏数据聚合（V1.3）
+router.get('/home-summary', systemController.getHomeSummary);
+router.post('/home-recommend', systemController.autoRecommendVault);
+
 export default router;

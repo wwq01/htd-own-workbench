@@ -12,6 +12,8 @@ import {
 import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { today, tomorrow } from '../../common/utils/date.js';
+import { createStateMachine } from '../../lib/stateMachine.js';
+import { TODO_STATUS, TODO_STATUS_TRANSITIONS } from '../../common/constants/enums.js';
 
 class TodoService {
   /**
@@ -54,6 +56,10 @@ class TodoService {
     // 空字符串处理为 null（estimatedTime/remark）
     if ('estimatedTime' in updateData && updateData.estimatedTime === '') updateData.estimatedTime = null;
     if ('remark' in updateData && updateData.remark === '') updateData.remark = null;
+    // 延期日期：空字符串 → null；有值 → Date
+    if ('delayedUntil' in updateData) {
+      updateData.delayedUntil = updateData.delayedUntil ? new Date(`${updateData.delayedUntil}T00:00:00`) : null;
+    }
 
     return todoRepository.updateById(id, updateData);
   }
@@ -96,6 +102,55 @@ class TodoService {
     if (nextStatus === 'completed') updateData.completedAt = new Date();
     else updateData.completedAt = null;
     return todoRepository.updateById(id, updateData);
+  }
+
+  /**
+   * 通用状态切换（受 5 态状态机约束）
+   * 合法迁移见 TODO_STATUS_TRANSITIONS；非法迁移抛 BusinessError
+   */
+  async changeStatus(id, toStatus) {
+    todoIdSchema.parse({ id });
+    if (!Object.values(TODO_STATUS).includes(toStatus)) {
+      throw new BusinessError(ErrorCodes.PARAM_ERROR, `非法的任务状态「${toStatus}」`);
+    }
+    const exists = await todoRepository.findById(id);
+    if (!exists) {
+      throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '待办不存在');
+    }
+    const sm = createStateMachine({ name: 'TodoStatus', ALLOWED_TRANSITIONS: TODO_STATUS_TRANSITIONS });
+    await sm.transition(exists.status, toStatus);
+    const updateData = { status: toStatus };
+    if (toStatus === 'completed') updateData.completedAt = new Date();
+    else updateData.completedAt = null;
+    // 离开延期态时清空延期目标
+    if (toStatus !== 'delayed') updateData.delayedUntil = null;
+    return todoRepository.updateById(id, updateData);
+  }
+
+  /**
+   * 延期操作（§6.2.1 任务 5 态）
+   * 不传 toDate 默认延期到明天；延期后状态切 DELAYED 并记录 delayedUntil，
+   * 同时将归属日期 todoDate 顺延到目标日期（从今日列表移出）
+   */
+  async delayTodo(id, payload = {}) {
+    todoIdSchema.parse({ id });
+    const exists = await todoRepository.findById(id);
+    if (!exists) {
+      throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '待办不存在');
+    }
+    if (exists.status === 'completed') {
+      throw new BusinessError(ErrorCodes.PARAM_ERROR, '已完成的任务不能延期');
+    }
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const toDate = payload && DATE_RE.test(payload.toDate) ? payload.toDate : tomorrow();
+    const sm = createStateMachine({ name: 'TodoStatus', ALLOWED_TRANSITIONS: TODO_STATUS_TRANSITIONS });
+    await sm.transition(exists.status, 'delayed');
+    return todoRepository.updateById(id, {
+      status: 'delayed',
+      todoDate: toDate,
+      delayedUntil: new Date(`${toDate}T00:00:00`),
+      completedAt: null,
+    });
   }
 
   /**
