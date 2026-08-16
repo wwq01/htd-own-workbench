@@ -16,11 +16,6 @@ export const TODO_PRIORITY = {
   LOW: '低',
 };
 
-export const TODO_STATUS = {
-  PENDING: 'pending',
-  COMPLETED: 'completed',
-};
-
 // ===== 项目管理 =====
 export const PROJECT_PHASE = {
   REQUIREMENT: '需求沟通',
@@ -125,3 +120,96 @@ export const DEPLOY_ENV_TYPE = {
 
 // ===== 里程碑到期提醒阈值（天）=====
 export const MILESTONE_WARNING_DAYS = 7;
+
+// ============================================================
+// V1.3 新模块枚举
+// ============================================================
+
+// ===== 待办 5 态（兼容旧数据：NOT_STARTED 复用 pending 字符串值）=====
+export const TODO_STATUS = {
+  NOT_STARTED: 'pending',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  DELAYED: 'delayed',
+};
+
+// ===== 复盘 3 态 =====
+export const REVIEW_STATUS = {
+  DRAFT: 'draft',
+  SUBMITTED: 'submitted',
+  PRECIPITATED: 'precipitated',
+};
+
+// 复盘 3 态合法迁移（draft → submitted → precipitated）
+export const REVIEW_STATUS_TRANSITIONS = {
+  draft: ['submitted'],
+  submitted: ['precipitated'],
+  precipitated: [],
+};
+
+// ===== 任务 5 态合法迁移（兼容旧数据 pending = NOT_STARTED）=====
+export const TODO_STATUS_TRANSITIONS = {
+  pending: ['in_progress', 'delayed', 'cancelled', 'completed'],
+  in_progress: ['completed', 'delayed', 'cancelled', 'pending'],
+  delayed: ['in_progress', 'cancelled', 'completed'],
+  completed: ['pending'],
+  cancelled: ['pending'],
+};
+
+// ===== 习惯打卡频率 =====
+export const HABIT_FREQUENCY = {
+  DAILY: 'DAILY',
+  WEEKLY: 'WEEKLY',
+};
+
+// ===== 时间块类型 =====
+export const TIME_BLOCK_TYPE = {
+  WORK: 'WORK',
+  STUDY: 'STUDY',
+  REST: 'REST',
+  OTHER: 'OTHER',
+};
+
+// ===== 财务收支类型 =====
+export const FINANCE_TYPE = {
+  INCOME: 'INCOME',
+  EXPENSE: 'EXPENSE',
+};
+
+// ===== 财务分类 =====
+export const FINANCE_CATEGORY = {
+  FOOD: 'FOOD',
+  HOUSING: 'HOUSING',
+  TRANSPORT: 'TRANSPORT',
+  SALARY: 'SALARY',
+  REIMBURSEMENT: 'REIMBURSEMENT',
+  OTHER: 'OTHER',
+};
+
+// ===== 沉淀状态 =====
+export const VAULT_STATUS = {
+  DRAFT: 'DRAFT',
+  PRECIPITATED: 'PRECIPITATED',
+  ARCHIVED: 'ARCHIVED',
+};
+
+// ===== 沉淀来源类型 =====
+export const VAULT_SOURCE_TYPE = {
+  MANUAL: 'MANUAL',
+  WEEKLY_REVIEW: 'WEEKLY_REVIEW',
+  PROJECT_REVIEW: 'PROJECT_REVIEW',
+  MEETING_REVIEW: 'MEETING_REVIEW',
+  CREDENTIAL_NOTE: 'CREDENTIAL_NOTE',
+  DEPLOY_NOTE: 'DEPLOY_NOTE',
+};
+
+// ===== 项目阶段合法迁移（6 阶段，中文值对齐现有 PROJECT_PHASE）=====
+export const PROJECT_PHASE_TRANSITIONS = {
+  '需求沟通': ['方案撰写', 'POC演示', '项目结项', '需求沟通'],
+  '方案撰写': ['POC演示', '投标答辩', '项目结项', '方案撰写'],
+  'POC演示': ['投标答辩', '交付跟进', '项目结项', 'POC演示'],
+  '投标答辩': ['交付跟进', '项目结项', '投标答辩'],
+  '交付跟进': ['项目结项', '交付跟进'],
+  '项目结项': ['需求沟通'], // 结项后可重开
+};

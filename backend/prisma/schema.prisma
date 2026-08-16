@@ -37,6 +37,7 @@ model Todo {
   remark        String?  // 补充备注
   todoDate      String   // 待办日期 YYYY-MM-DD（区分今日/明日/历史）
   completedAt   DateTime? // 完成时间
+  delayedUntil  DateTime? // 延期至（V1.3 任务 5 态：DELAYED）
   sortOrder     Int      @default(0) // 排序
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -70,6 +71,7 @@ model Project {
 
   milestones      ProjectMilestone[]
   tasks           ProjectTask[]
+  phaseTransitions ProjectPhaseTransition[]
 
   @@index([phase])
   @@map("projects")
@@ -238,6 +240,10 @@ model Review {
   reviewResult          String?  // 复盘结果：成单/丢单/暂停/持续跟进
   // 元数据
   remark                String?
+  // V1.3 复盘状态机：draft / submitted / precipitated
+  status                String   @default("DRAFT")
+  // V1.3 沉淀来源类型：提交复盘时自动生成 Vault 草稿的 sourceType 推导依据
+  vaultSourceType       String?
   sortOrder             Int      @default(0)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -246,6 +252,7 @@ model Review {
   @@index([type])
   @@index([weekKey])
   @@index([projectId])
+  @@index([status])
   @@map("reviews")
 }
 
@@ -285,4 +292,158 @@ model Deployment {
 
   @@index([envType])
   @@map("deployments")
+}
+
+// ============================================================
+// V1.3 新模块模型
+// ============================================================
+
+// ===== 会议纪要 =====
+model Meeting {
+  id              String   @id @default(cuid())
+  title           String // 会议主题
+  heldAt          DateTime // 召开时间（含时分）
+  participants    String   @default("[]") // 参与人 JSON 数组（字符串数组，自由输入人名）
+  agenda          String   @default("[]") // 议题列表 JSON：[{ order, title, detail }]
+  decisions       String   @default("[]") // 决策列表 JSON：[{ order, content, owner }]
+  actionItems     String   @default("[]") // 行动项 JSON：[{ id, content, owner, due, done, sourceLinked }]
+  relatedProjectId String? // 关联项目 ID
+  reviewId        String? // 关联生成的复盘 ID
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([heldAt])
+  @@map("meetings")
+}
+
+// ===== 习惯打卡 =====
+model Habit {
+  id              String   @id @default(cuid())
+  name            String // 习惯名称
+  frequency       String   @default("DAILY") // DAILY / WEEKLY
+  weeklyTargetDays Int? // 每周目标次数（WEEKLY 时必填）
+  dailyTargetCount Int     @default(1) // 每日目标次数
+  remark          String?
+  icon            String? // emoji 图标
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  checkIns        HabitCheckIn[]
+
+  @@index([frequency])
+  @@map("habits")
+}
+
+// ===== 习惯打卡记录 =====
+model HabitCheckIn {
+  id        String   @id @default(cuid())
+  habitId   String
+  date      String // 打卡日期 YYYY-MM-DD
+  count     Int      @default(1) // 当日累计次数
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  habit     Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@index([habitId])
+  @@index([date])
+  @@map("habit_checkins")
+}
+
+// ===== 时间块 / 番茄钟 =====
+model TimeBlock {
+  id             String   @id @default(cuid())
+  startedAt      DateTime // 起始时间
+  endedAt        DateTime? // 结束时间（未完成为 NULL）
+  plannedMinutes Int      @default(25) // 计划时长（分钟）
+  actualMinutes  Int      @default(0) // 实际时长（分钟）
+  type           String   @default("WORK") // WORK / STUDY / REST / OTHER
+  relatedProjectId String? // 关联项目 ID（type=WORK 时推荐填）
+  relatedStudyId String? // 关联充电学习记录 ID（type=STUDY 时推荐填）
+  note           String?
+  interrupted    Boolean  @default(false) // 是否被中断
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@index([startedAt])
+  @@index([type])
+  @@map("time_blocks")
+}
+
+// ===== 财务速记（收支主表）=====
+model FinanceRecord {
+  id             String   @id @default(cuid())
+  date           DateTime // 发生日期
+  type           String // INCOME / EXPENSE
+  amount         Float    @default(0) // 金额（元，两位小数，正数，方向由 type 决定）
+  category       String // FOOD / HOUSING / TRANSPORT / SALARY / REIMBURSEMENT / OTHER
+  subCategory    String? // 子分类自由填
+  relatedClientId String? // 关联客户 ID（可选）
+  remark         String?
+  tags           String   @default("[]") // 标签 JSON 数组
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@index([date])
+  @@index([type])
+  @@index([category])
+  @@map("finance_records")
+}
+
+// ===== 合同回款（独立子表）=====
+model ContractReceivable {
+  id             String   @id @default(cuid())
+  contractNo     String // 合同号
+  contractAmount Float    @default(0) // 合同总金额
+  clientName     String? // 客户名称
+  nodes          String   @default("[]") // 回款节点 JSON：[{ nodeName, dueDate, expectedAmount, receivedAmount, receivedAt }]
+  totalReceived  Float    @default(0) // 已回款总额
+  totalPending   Float    @default(0) // 待回款总额
+  remark         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@index([clientName])
+  @@map("contract_receivables")
+}
+
+// ===== 沉淀 Vault =====
+model VaultItem {
+  id         String   @id @default(cuid())
+  topic      String // 主题（标题）
+  content    String   @default("") // 笔记正文（Markdown 纯文本）
+  tags       String   @default("[]") // 标签 JSON 数组
+  status     String   @default("DRAFT") // DRAFT / PRECIPITATED / ARCHIVED
+  sourceType String   @default("MANUAL") // MANUAL / WEEKLY_REVIEW / PROJECT_REVIEW / MEETING_REVIEW / CREDENTIAL_NOTE / DEPLOY_NOTE
+  sourceId   String? // 来源记录 ID
+  sourceUrl  String? // 来源 URL Hash
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@index([status])
+  @@index([sourceType])
+  @@map("vault_items")
+}
+
+// ===== 项目阶段切换记录 =====
+model ProjectPhaseTransition {
+  id        String   @id @default(cuid())
+  projectId String
+  fromPhase String // 起始阶段
+  toPhase   String // 目标阶段
+  reason    String? // 切换原因（可选）
+  createdAt DateTime @default(now())
+  createdBy String? // 操作人（本地单人，可选）
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_phase_transitions")
 }

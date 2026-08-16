@@ -56,6 +56,13 @@ export async function connectDatabase() {
   try {
     await prisma.$connect();
     logger.info('数据库连接成功');
+    // V1.3：幂等对齐运行中的真实库与当前 schema（补齐新增表/列，保护老库）
+    try {
+      const { ensureSchema } = await import('./migrate.js');
+      await ensureSchema();
+    } catch (migrateErr) {
+      logger.error('Schema 对齐失败（已忽略，不影响启动）:', migrateErr.message);
+    }
     return prisma;
   } catch (error) {
     logger.error('数据库连接失败:', error.message);
