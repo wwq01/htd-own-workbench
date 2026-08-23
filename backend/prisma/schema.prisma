@@ -447,3 +447,86 @@ model ProjectPhaseTransition {
   @@index([projectId])
   @@map("project_phase_transitions")
 }
+
+// ============================================================
+// V1.4 四大业务模块模型
+// ============================================================
+
+// ===== POC 跟踪（工作）=====
+model PocTracking {
+  id                  String   @id @default(cuid())
+  goal                String // POC 目标（必填）
+  environment         String? // 验证环境
+  customerParticipants String? // 客户参与人 JSON 数组（字符串数组，自由输入人名）
+  result              String? // 验证结果
+  status              String   @default("draft") // draft/scheduled/in_progress/success/failed/cancelled
+  projectId           String? // 软关联项目 ID（无外键）
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  @@index([status])
+  @@index([projectId])
+  @@map("poc_trackings")
+}
+
+// ===== 投标档案（工作）=====
+model BidArchive {
+  id                 String   @id @default(cuid())
+  bidNo              String   @unique // 投标编号（必填，唯一）
+  deadline           String? // 投标截止日期 YYYY-MM-DD
+  bidVersion         String? // 标书版本
+  bidResult          String   @default("pending") // pending/won/lost
+  status             String   @default("draft") // draft/submitted/archived
+  projectMilestoneId String? // 软关联里程碑 ID（仅存 id，无外键/级联）
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  @@index([bidResult])
+  @@index([status])
+  @@index([projectMilestoneId])
+  @@map("bid_archives")
+}
+
+// ===== 漏洞跟踪库（资产组隔离）=====
+model VulnTrack {
+  id              String   @id @default(cuid())
+  assetGroup      String // 资产组（隔离维度，必填）
+  vulnId          String // 漏洞编号（必填）
+  affectedProduct String? // 影响产品
+  exploitMethod   String? // 利用方式
+  reproduction    String? // 复现步骤
+  fixStatus       String   @default("open") // open/fixing/fixed/wont_fix/closed
+  severity        String   @default("medium") // low/medium/high/critical
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([assetGroup])
+  @@index([fixStatus])
+  @@index([vulnId])
+  @@map("vuln_tracks")
+}
+
+// ===== 应急响应记录（工作）=====
+model EmergencyResponse {
+  id              String   @id @default(cuid())
+  title           String // 事件标题（必填）
+  eventTimeline   String? // 事件时间线 JSON 数组
+  responseActions String? // 处置动作 JSON 数组
+  review          String? // 复盘总结
+  status          String   @default("open") // open/contained/resolved/closed
+  severity        String   @default("medium") // low/medium/high/critical
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([status])
+  @@index([severity])
+  @@map("emergency_responses")
+}

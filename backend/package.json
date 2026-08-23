@@ -1,6 +1,6 @@
 {
   "name": "huangtiandi-workbench-backend",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "description": "荒天帝工作台 - 后端服务",
   "type": "module",
   "main": "build/server.cjs",
@@ -9,6 +9,9 @@
     "start": "node src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "lint": "node scripts/validate-theme.js && node scripts/visual-audit.js",
+    "theme:validate": "node scripts/validate-theme.js",
+    "audit": "node scripts/check-schemas.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --name init",
     "db:push": "prisma db push",

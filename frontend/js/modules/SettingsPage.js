@@ -5,6 +5,10 @@ const SETTINGS_THEME_OPTIONS = [
   { label: '深色模式', value: 'dark' },
   { label: '浅色模式', value: 'light' },
 ];
+const APPEARANCE_OPTIONS = [
+  { label: 'Liquid Glass（玻璃质感 · 默认）', value: 'liquid-glass' },
+  { label: 'Notion 极简平铺', value: 'notion-flat' },
+];
 const BACKUP_FREQUENCY_OPTIONS = [
   { label: '每次启动', value: 'startup' },
   { label: '每天最多一次', value: 'daily' },
@@ -20,6 +24,8 @@ const SettingsPage = {
     const saving = Vue.ref(false);
     const form = Vue.reactive({
       theme: 'dark',
+      appearance: 'liquid-glass',
+      decoration: 'on',
       dataRoot: '',
       backupFrequency: 'startup',
       maxBackups: 7,
@@ -30,7 +36,9 @@ const SettingsPage = {
       try {
         const data = await htdApi.get('/system/settings');
         Object.assign(form, data);
-        appStore.applyTheme(data.theme);
+        form.appearance = data.appearance || 'liquid-glass';
+        form.decoration = data.decoration || 'on';
+        appStore.applyAppearance({ theme: data.theme, appearance: form.appearance, decoration: form.decoration });
       } catch (e) {
         // 请求封装已提示错误
       } finally {
@@ -47,6 +55,8 @@ const SettingsPage = {
       try {
         const data = await appStore.saveSettings({
           theme: form.theme,
+          appearance: form.appearance,
+          decoration: form.appearance === 'notion-flat' ? 'off' : form.decoration,
           dataRoot: form.dataRoot.trim(),
           backupFrequency: form.backupFrequency,
           maxBackups: Number(form.maxBackups),
@@ -60,16 +70,33 @@ const SettingsPage = {
       }
     }
 
+    // 装饰仅 liquid-glass 生效；notion-flat 强制关闭
+    const decorationApplicable = Vue.computed(() => form.appearance === 'liquid-glass');
+    const decorationOn = Vue.computed({
+      get: () => form.decoration === 'on',
+      set: (val) => { form.decoration = val ? 'on' : 'off'; },
+    });
+
     function applyThemePreview(theme) {
       appStore.applyTheme(theme);
+    }
+
+    // 外观 / 装饰实时预览（仅改 <html> data 属性，不落库）
+    function applyAppearancePreview() {
+      appStore.applyAppearance({
+        theme: form.theme,
+        appearance: form.appearance,
+        decoration: form.appearance === 'notion-flat' ? 'off' : form.decoration,
+      });
     }
 
     Vue.onMounted(loadSettings);
 
     return {
       form, loading, saving,
-      SETTINGS_THEME_OPTIONS, BACKUP_FREQUENCY_OPTIONS,
-      loadSettings, saveSettings, applyThemePreview,
+      SETTINGS_THEME_OPTIONS, BACKUP_FREQUENCY_OPTIONS, APPEARANCE_OPTIONS,
+      decorationApplicable, decorationOn,
+      loadSettings, saveSettings, applyThemePreview, applyAppearancePreview,
     };
   },
   template: `
@@ -87,10 +114,26 @@ const SettingsPage = {
         <div v-else class="settings-form">
           <div class="settings-form__row">
             <div>
-              <label class="form-label">外观主题</label>
-              <div class="text-tertiary">立即切换工作台的颜色主题。</div>
+              <label class="form-label">外观风格</label>
+              <div class="text-tertiary">选择工作台的表面材质（玻璃质感或极简平铺）。</div>
+            </div>
+            <htp-select v-model="form.appearance" :options="APPEARANCE_OPTIONS" placeholder="选择外观" @update:modelValue="applyAppearancePreview"></htp-select>
+          </div>
+
+          <div class="settings-form__row">
+            <div>
+              <label class="form-label">颜色主题</label>
+              <div class="text-tertiary">立即切换工作台的深色 / 浅色配色。</div>
             </div>
             <htp-select v-model="form.theme" :options="SETTINGS_THEME_OPTIONS" placeholder="选择主题" @update:modelValue="applyThemePreview"></htp-select>
+          </div>
+
+          <div class="settings-form__row">
+            <div>
+              <label class="form-label">装饰效果</label>
+              <div class="text-tertiary">{{ decorationApplicable ? '开启背景光斑等装饰性视觉元素。' : '极简平铺外观不支持装饰，已自动关闭。' }}</div>
+            </div>
+            <htp-checkbox v-model="decorationOn" :disabled="!decorationApplicable" @change="applyAppearancePreview"></htp-checkbox>
           </div>
 
           <div class="settings-form__row">

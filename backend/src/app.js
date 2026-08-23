@@ -33,6 +33,10 @@ import timeBlockRouter from './modules/time-block/time-block.router.js';
 import financeRouter from './modules/finance/finance.router.js';
 import financeContractRouter from './modules/finance-contract/finance-contract.router.js';
 import vaultRouter from './modules/vault/vault.router.js';
+import pocRouter from './modules/poc/poc.router.js';
+import bidRouter from './modules/bid/bid.router.js';
+import vulnRouter from './modules/vuln/vuln.router.js';
+import incidentRouter from './modules/incident/incident.router.js';
 import logger from './common/logger.js';
 
 function createApp() {
@@ -93,6 +97,10 @@ function createApp() {
   app.use(`${appConfig.apiPrefix}/finances`, financeRouter);
   app.use(`${appConfig.apiPrefix}/finance-contracts`, financeContractRouter);
   app.use(`${appConfig.apiPrefix}/vaults`, vaultRouter);
+  app.use(`${appConfig.apiPrefix}/pocs`, pocRouter);
+  app.use(`${appConfig.apiPrefix}/bids`, bidRouter);
+  app.use(`${appConfig.apiPrefix}/vulns`, vulnRouter);
+  app.use(`${appConfig.apiPrefix}/incidents`, incidentRouter);
 
   // ===== 前端静态资源托管 =====
   const frontendDir = appConfig.frontendDir;

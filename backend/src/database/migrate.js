@@ -120,6 +120,59 @@ const TABLE_DDL = [
     "createdAt" BIGINT,
     "createdBy" TEXT
   );`,
+  `CREATE TABLE IF NOT EXISTS "poc_trackings" (
+    "id" TEXT PRIMARY KEY,
+    "goal" TEXT,
+    "environment" TEXT,
+    "customerParticipants" TEXT,
+    "result" TEXT,
+    "status" TEXT,
+    "projectId" TEXT,
+    "sortOrder" INTEGER,
+    "createdAt" BIGINT,
+    "updatedAt" BIGINT,
+    "deletedAt" BIGINT
+  );`,
+  `CREATE TABLE IF NOT EXISTS "bid_archives" (
+    "id" TEXT PRIMARY KEY,
+    "bidNo" TEXT,
+    "deadline" TEXT,
+    "bidVersion" TEXT,
+    "bidResult" TEXT,
+    "status" TEXT,
+    "projectMilestoneId" TEXT,
+    "sortOrder" INTEGER,
+    "createdAt" BIGINT,
+    "updatedAt" BIGINT,
+    "deletedAt" BIGINT
+  );`,
+  `CREATE TABLE IF NOT EXISTS "vuln_tracks" (
+    "id" TEXT PRIMARY KEY,
+    "assetGroup" TEXT,
+    "vulnId" TEXT,
+    "affectedProduct" TEXT,
+    "exploitMethod" TEXT,
+    "reproduction" TEXT,
+    "fixStatus" TEXT,
+    "severity" TEXT,
+    "sortOrder" INTEGER,
+    "createdAt" BIGINT,
+    "updatedAt" BIGINT,
+    "deletedAt" BIGINT
+  );`,
+  `CREATE TABLE IF NOT EXISTS "emergency_responses" (
+    "id" TEXT PRIMARY KEY,
+    "title" TEXT,
+    "eventTimeline" TEXT,
+    "responseActions" TEXT,
+    "review" TEXT,
+    "status" TEXT,
+    "severity" TEXT,
+    "sortOrder" INTEGER,
+    "createdAt" BIGINT,
+    "updatedAt" BIGINT,
+    "deletedAt" BIGINT
+  );`,
 ];
 
 // 老表新增列（缺失才加）

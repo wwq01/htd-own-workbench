@@ -12,11 +12,13 @@ const useAppStore = Pinia.defineStore('app', {
     // 全局快速备忘输入值
     memoInput: '',
     // 版本号
-    version: '1.2.0',
+    version: '1.4.0',
     // 总数据条目数（侧边栏底部展示）
     totalDataCount: 0,
     settings: {
       theme: 'dark',
+      appearance: 'liquid-glass',
+      decoration: 'on',
       dataRoot: '',
       backupFrequency: 'startup',
       maxBackups: 7,
@@ -42,15 +44,39 @@ const useAppStore = Pinia.defineStore('app', {
   },
 
   actions: {
+    // 三维主题：设置 <html> 的 data-appearance / data-theme / data-decoration 三属性。
+    // 优先复用 theme-manager（window.htdTheme）以保证 localStorage 同步与降级策略一致；
+    // 若其尚未就绪则直接写 data 属性降级。组件 CSS / class 名零改动。
+    applyAppearance(partial) {
+      partial = partial || {};
+      if (window.htdTheme && typeof window.htdTheme.applyTheme === 'function') {
+        return window.htdTheme.applyTheme(partial);
+      }
+      var d = document.documentElement;
+      if (partial.appearance) d.setAttribute('data-appearance', partial.appearance);
+      if (partial.theme) d.setAttribute('data-theme', partial.theme === 'light' ? 'light' : 'dark');
+      if (partial.decoration) d.setAttribute('data-decoration', partial.decoration);
+      return {
+        appearance: d.getAttribute('data-appearance') || 'liquid-glass',
+        theme: d.getAttribute('data-theme') || 'dark',
+        decoration: d.getAttribute('data-decoration') || 'on',
+      };
+    },
+
+    // 旧版单轴主题设置器（仅切 data-theme），保留兼容既有调用方
     applyTheme(theme) {
-      document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+      return this.applyAppearance({ theme: theme });
     },
 
     async loadSettings() {
       try {
         const data = await htdApi.get('/system/settings');
         this.settings = data;
-        this.applyTheme(data.theme);
+        this.applyAppearance({
+          theme: data.theme,
+          appearance: data.appearance,
+          decoration: data.decoration,
+        });
       } catch (err) {
         this.applyTheme(this.settings.theme);
       }
@@ -59,7 +85,11 @@ const useAppStore = Pinia.defineStore('app', {
     async saveSettings(payload) {
       const data = await htdApi.put('/system/settings', payload);
       this.settings = data;
-      this.applyTheme(data.theme);
+      this.applyAppearance({
+        theme: data.theme,
+        appearance: data.appearance,
+        decoration: data.decoration,
+      });
       return data;
     },
 

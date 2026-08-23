@@ -213,3 +213,90 @@ export const PROJECT_PHASE_TRANSITIONS = {
   '交付跟进': ['项目结项', '交付跟进'],
   '项目结项': ['需求沟通'], // 结项后可重开
 };
+
+// ============================================================
+// V1.4 四大新模块枚举（对齐 blueprint §4.4）
+// ============================================================
+
+// ===== POC 跟踪 6 态 =====
+export const POC_STATUS = {
+  DRAFT: 'draft',
+  SCHEDULED: 'scheduled',
+  IN_PROGRESS: 'in_progress',
+  SUCCESS: 'success',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled',
+};
+
+// POC 6 态合法迁移
+export const POC_STATUS_TRANSITIONS = {
+  draft: ['scheduled', 'cancelled'],
+  scheduled: ['in_progress', 'cancelled'],
+  in_progress: ['success', 'failed', 'cancelled'],
+  success: [],
+  failed: [],
+  cancelled: [],
+};
+
+// ===== 投标档案 3 态 =====
+export const BID_STATUS = {
+  DRAFT: 'draft',
+  SUBMITTED: 'submitted',
+  ARCHIVED: 'archived',
+};
+
+// 投标 3 态合法迁移
+export const BID_STATUS_TRANSITIONS = {
+  draft: ['submitted', 'archived'],
+  submitted: ['archived'],
+  archived: [],
+};
+
+// 投标结果
+export const BID_RESULT = {
+  PENDING: 'pending',
+  WON: 'won',
+  LOST: 'lost',
+};
+
+// ===== 漏洞修复 5 态 =====
+export const VULN_FIX_STATUS = {
+  OPEN: 'open',
+  FIXING: 'fixing',
+  FIXED: 'fixed',
+  WONT_FIX: 'wont_fix',
+  CLOSED: 'closed',
+};
+
+// 漏洞修复 5 态合法迁移
+export const VULN_FIX_STATUS_TRANSITIONS = {
+  open: ['fixing', 'wont_fix', 'closed'],
+  fixing: ['fixed', 'wont_fix', 'closed'],
+  fixed: ['closed'],
+  wont_fix: ['closed'],
+  closed: [],
+};
+
+// ===== 严重度（漏洞 + 应急 共用）=====
+export const SEVERITY = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  CRITICAL: 'critical',
+};
+
+// ===== 应急响应 4 态 =====
+export const EMERGENCY_STATUS = {
+  OPEN: 'open',
+  CONTAINED: 'contained',
+  RESOLVED: 'resolved',
+  CLOSED: 'closed',
+};
+
+// 应急 4 态合法迁移
+export const EMERGENCY_STATUS_TRANSITIONS = {
+  open: ['contained', 'resolved', 'closed'],
+  contained: ['resolved', 'closed'],
+  resolved: ['closed'],
+  closed: [],
+};

@@ -44,6 +44,10 @@
   /* --- 品牌/强调色（更通透蓝，去网页感） --- */
   --color-primary: #5B8DEF;
   --color-primary-hover: #4A7CE0;
+  --color-primary-deeper: #2456BF;
+  --color-primary-deepest: #1E48A8;
+  --color-danger-strong: #C62828;
+  --color-danger-deep: #B91C1C;
 
   /* --- 功能状态色 --- */
   --color-success: #10B981;
@@ -95,6 +99,7 @@
   --font-size-md: 16px;
   --font-size-base: 14px;
   --font-size-sm: 12px;
+  --font-size-xs: 11px;
 
   /* --- 字重 --- */
   --font-weight-semibold: 600;
@@ -181,6 +186,10 @@ html[data-theme="light"] {
   --text-disabled: #94A3B8;
   --color-primary: #2F6BEE;
   --color-primary-hover: #1F5BD9;
+  --color-primary-deeper: #1F5BD9;
+  --color-primary-deepest: #1849B5;
+  --color-danger-strong: #C62828;
+  --color-danger-deep: #991B1B;
   --border-default: rgba(15, 23, 42, 0.10);
   --border-hover: #2F6BEE;
   --shadow-modal: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 8px 30px rgba(15, 23, 42, 0.16);
@@ -556,6 +565,82 @@ a:focus-visible,
   display: inline-block;
   vertical-align: middle;
   flex-shrink: 0;
+}
+
+/* ============================================================
+   V1.4 主题覆盖层（仅【新增】，不修改任何既有规则）
+   ------------------------------------------------------------
+   两套外观差异：Liquid Glass（默认）= :root 原始令牌；
+   Notion 极简平铺 = 下方覆盖块把玻璃令牌重映射为实色 / 0。
+   主题切换【仅改 <html> 的 data-appearance / data-theme /
+   data-decoration 三属性】，组件 CSS 零改动，靠令牌覆盖自动生效
+   （ADR-v14-01：外观是表面材质差异而非配色差异，分轴可独立演化）。
+   新增色值仅出现在本覆盖层 / :root / theme.json（P0 红线）。
+   ============================================================ */
+
+/* ---- Notion 极简平铺（暗色 / 默认基底重映射） ---- */
+html[data-appearance="notion-flat"] {
+  /* 玻璃 → 实色（去透 / 去模糊 / 去高光） */
+  --glass-blur: 0px;
+  --glass-blur-shell: 0px;
+  --glass-blur-panel: 0px;
+  --glass-blur-chip: 0px;
+  --glass-saturate: 100%;
+  --glass-bg: #1E293B;            /* 实色面板 */
+  --glass-bg-strong: #243043;    /* 实色强面板 */
+  --glass-border: rgba(255, 255, 255, 0.12);  /* 发丝线（替代高光描边） */
+  --glass-highlight: transparent;/* 去内高光 */
+  --glass-fallback: #1E293B;
+  /* 阴影令牌置空（卡片不再投影） */
+  --shadow-card: none;
+  --shadow-modal: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-dropdown: 0 1px 2px rgba(0, 0, 0, 0.30);
+  /* 背景墙 → 实色（光斑透明 + 渐变层改为实色） */
+  --bg-spot-1: transparent;
+  --bg-spot-2: transparent;
+  --bg-gradient: #0F172A;
+  --bg-deepest: #0F172A;
+  /* 圆角收敛：base 12 → 6 */
+  --radius-base: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  /* 间距收敛：base 16 → 12 */
+  --spacing-base: 12px;
+}
+
+/* ---- Notion 极简平铺（亮色组合覆盖，specificity 高于单轴） ---- */
+html[data-appearance="notion-flat"][data-theme="light"] {
+  --glass-bg: #FFFFFF;
+  --glass-bg-strong: #FFFFFF;
+  --glass-border: rgba(15, 23, 42, 0.12);
+  --glass-highlight: transparent;
+  --glass-fallback: #FFFFFF;
+  --shadow-card: none;
+  --shadow-modal: 0 1px 2px rgba(15, 23, 42, 0.12);
+  --shadow-dropdown: 0 1px 2px rgba(15, 23, 42, 0.12);
+  --bg-spot-1: transparent;
+  --bg-spot-2: transparent;
+  --bg-gradient: #F1F5F9;
+  --bg-deepest: #F1F5F9;
+  --radius-base: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --spacing-base: 12px;
+}
+
+/* ---- 装饰开关：关闭时移除背景墙光斑 / 渐变装饰 ---- */
+html[data-decoration="off"] body {
+  background-image: none;
+}
+
+/* ---- 减少动态效果（主题管理器跟踪系统设置，强制时长归零） ---- */
+html[data-reduced-motion="true"] *,
+html[data-reduced-motion="true"] *::before,
+html[data-reduced-motion="true"] *::after {
+  animation-duration: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0ms !important;
+  scroll-behavior: auto !important;
 }
 .tag-icon,
 .secret-card__icon,

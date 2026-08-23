@@ -10,6 +10,8 @@ import { settingsUpdateSchema } from './settings.schema.js';
 
 export const DEFAULT_SETTINGS = {
   theme: 'dark',
+  appearance: 'liquid-glass',
+  decoration: 'on',
   dataRoot: appConfig.dataRoot,
   backupFrequency: 'startup',
   maxBackups: dbConfig.backup.maxBackups,

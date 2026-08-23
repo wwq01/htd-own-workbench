@@ -306,8 +306,8 @@ const MeetingPage = {
                 <htp-tag type="warning">决策 {{ m._decisions.length }}</htp-tag>
                 <htp-tag type="success">行动项 {{ m._actionItems.length }}</htp-tag>
                 <div class="ml-auto flex items-center gap-xs">
-                  <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click.stop="openEdit(m)">编辑</button>
-                  <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click.stop="requestDelete(m)">删除</button>
+                  <button class="htp-btn htp-btn--primary htp-btn--sm" @click.stop="openEdit(m)">编辑</button>
+                  <button class="htp-btn htp-btn--danger htp-btn--sm" @click.stop="requestDelete(m)">删除</button>
                 </div>
               </div>
             </div>
@@ -333,6 +333,7 @@ const MeetingPage = {
             <div class="form-item">
               <label class="form-item__label"><span class="text-danger">*</span> 召开时间</label>
               <input type="datetime-local" class="htp-input" v-model="form.heldAt" />
+              <div class="form-hint">格式：年/月/日 时:分（24 小时制）</div>
             </div>
             <div class="form-item">
               <label class="form-item__label">关联项目</label>
@@ -348,44 +349,44 @@ const MeetingPage = {
           <div class="form-item">
             <div class="flex items-center justify-between mb-xs">
               <label class="form-item__label">会议议题</label>
-              <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="addAgenda">+ 添加议题</button>
+              <button class="htp-btn htp-btn--primary htp-btn--sm" @click="addAgenda">+ 添加议题</button>
             </div>
             <div v-for="(a, i) in form.agenda" :key="i" class="dynamic-row">
               <htp-input v-model="a.title" placeholder="议题标题" class="flex-1"></htp-input>
               <htp-input v-model="a.detail" placeholder="议题说明" class="flex-1"></htp-input>
-              <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click="removeAgenda(i)">删除</button>
+              <button class="htp-btn htp-btn--danger htp-btn--sm" @click="removeAgenda(i)">删除</button>
             </div>
-            <div v-if="form.agenda.length === 0" class="text-sm text-tertiary">暂无议题</div>
+            <div v-if="form.agenda.length === 0" class="form-empty">暂无议题</div>
           </div>
 
           <!-- 决策 -->
           <div class="form-item">
             <div class="flex items-center justify-between mb-xs">
               <label class="form-item__label">会议决策</label>
-              <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="addDecision">+ 添加决策</button>
+              <button class="htp-btn htp-btn--primary htp-btn--sm" @click="addDecision">+ 添加决策</button>
             </div>
             <div v-for="(d, i) in form.decisions" :key="i" class="dynamic-row">
               <htp-input v-model="d.content" placeholder="决策内容" class="flex-1"></htp-input>
               <htp-input v-model="d.owner" placeholder="负责人" style="max-width:160px"></htp-input>
-              <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click="removeDecision(i)">删除</button>
+              <button class="htp-btn htp-btn--danger htp-btn--sm" @click="removeDecision(i)">删除</button>
             </div>
-            <div v-if="form.decisions.length === 0" class="text-sm text-tertiary">暂无决策</div>
+            <div v-if="form.decisions.length === 0" class="form-empty">暂无决策</div>
           </div>
 
           <!-- 行动项 -->
           <div class="form-item">
             <div class="flex items-center justify-between mb-xs">
               <label class="form-item__label">行动项</label>
-              <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="addAction">+ 添加行动项</button>
+              <button class="htp-btn htp-btn--primary htp-btn--sm" @click="addAction">+ 添加行动项</button>
             </div>
             <div v-for="(a, i) in form.actionItems" :key="i" class="dynamic-row dynamic-row--action">
               <htp-input v-model="a.content" placeholder="行动内容" class="flex-1"></htp-input>
               <htp-input v-model="a.owner" placeholder="负责人" style="max-width:120px"></htp-input>
               <input type="date" class="htp-input" v-model="a.due" style="max-width:150px" title="截止日期" />
               <htp-checkbox v-model="a.done" label="已完成"></htp-checkbox>
-              <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click="removeAction(i)">删除</button>
+              <button class="htp-btn htp-btn--danger htp-btn--sm" @click="removeAction(i)">删除</button>
             </div>
-            <div v-if="form.actionItems.length === 0" class="text-sm text-tertiary">暂无行动项</div>
+            <div v-if="form.actionItems.length === 0" class="form-empty">暂无行动项</div>
           </div>
         </div>
       </htp-modal>
@@ -436,7 +437,7 @@ const MeetingPage = {
                 <htp-tag v-if="a.owner" type="info" class="ml-sm">{{ a.owner }}</htp-tag>
                 <htp-tag v-if="a.due" type="default" class="ml-sm">截止 {{ a.due }}</htp-tag>
                 <htp-tag v-if="a.done" type="success" class="ml-sm">已完成</htp-tag>
-                <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm ml-auto" @click="addActionToToday(a)">➕今日</button>
+                <button class="htp-btn htp-btn--primary htp-btn--sm ml-auto" @click="addActionToToday(a)">➕今日</button>
               </li>
             </ul>
             <div v-else class="text-sm text-tertiary">暂无行动项</div>

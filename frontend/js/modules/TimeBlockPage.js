@@ -377,10 +377,12 @@ const TimeBlockPage = {
             <div class="form-item">
               <label class="form-item__label">开始时间</label>
               <input type="datetime-local" class="htp-input" v-model="supplementForm.startedAt" />
+              <div class="form-hint">年/月/日 时:分（24 小时制）</div>
             </div>
             <div class="form-item">
               <label class="form-item__label">结束时间</label>
               <input type="datetime-local" class="htp-input" v-model="supplementForm.endedAt" />
+              <div class="form-hint">年/月/日 时:分（24 小时制）</div>
             </div>
           </div>
           <div class="form-item">

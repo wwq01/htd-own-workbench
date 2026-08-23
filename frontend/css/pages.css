@@ -898,8 +898,12 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-base);
 }
-.form-grid > .form-item:nth-last-child(1):nth-child(odd) {
-  /* 让最后一项如果是奇数占全宽，避免单独对齐 */
+/* 表单网格内：直接子项（含两列行、金额告警块）统一占满整行，
+   避免裸 form-item 被挤到单列、两列行被压成 1/4 宽度的失衡问题 */
+.form-grid > .form-item,
+.form-grid > .form-row-2,
+.form-grid > .finance-amount-warn {
+  grid-column: 1 / -1;
 }
 @media (max-width: 640px) {
   .form-grid { grid-template-columns: 1fr; }
@@ -951,6 +955,38 @@
   text-align: center;
   color: var(--text-tertiary);
   font-size: var(--font-size-sm);
+}
+/* 表单内空状态占位：虚线框 + 居中弱化文案，明确「待添加」而非「禁用输入框」 */
+.form-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  background: transparent;
+}
+/* 表单字段下方辅助说明（如时间格式提示） */
+.form-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+/* 沉淀详情内容区：改用设计令牌，去掉硬编码 hex */
+.vault-detail__content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.7;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
 }
 .list-header__title {
   font-size: var(--font-size-base);

@@ -363,7 +363,7 @@ const VaultPage = {
               class="mr-xs mb-xs"
             >{{ t }}</htp-tag>
           </div>
-          <div class="vault-detail__content" style="white-space:pre-wrap; word-break:break-word; line-height:1.7; background:var(--bg-tertiary, #f5f7fa); border-radius:8px; padding:12px; font-size:14px; color:#1f2937;">{{ detailItem.content }}</div>
+          <div class="vault-detail__content">{{ detailItem.content }}</div>
           <div class="vault-detail__footer text-xs text-tertiary mt-sm">
             创建：{{ formatDateTime(detailItem.createdAt) }} · 更新：{{ formatDateTime(detailItem.updatedAt) }}
           </div>

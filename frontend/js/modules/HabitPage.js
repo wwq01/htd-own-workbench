@@ -320,7 +320,7 @@ const HabitPage = {
           </div>
           <div class="form-item">
             <label class="form-item__label">图标（emoji）</label>
-            <htp-input v-model="form.icon" placeholder="如 🏃 📚 💧（可选）" maxlength="8"></htp-input>
+            <htp-input v-model="form.icon" placeholder="可选，输入一个 emoji 作为图标" maxlength="8"></htp-input>
           </div>
           <div class="form-item">
             <label class="form-item__label">备注</label>
@@ -347,7 +347,7 @@ const HabitPage = {
         <div class="py-sm">
           <div class="text-tertiary mb-xs">删除后其打卡记录一并不可恢复，确定要删除以下习惯吗？</div>
           <div class="text-primary font-medium bg-bg-tertiary rounded p-sm">
-            <span class="mr-xs">{{ delConfirm.icon || '📌' }}</span>
+            <span class="mr-xs" v-html="delConfirm.icon ? delConfirm.icon : htdIcon('bookmark', { size: 18 })"></span>
             <span>{{ delConfirm.name }}</span>
           </div>
         </div>

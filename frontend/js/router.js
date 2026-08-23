@@ -138,6 +138,10 @@ function initRouter() {
   registerRoute('/finance', { title: '财务速记', module: 'finance' });
   registerRoute('/vault', { title: '沉淀 Vault', module: 'vault' });
   registerRoute('/system/recycle-bin', { title: '回收站', module: 'recycle-bin' });
+  registerRoute('/poc', { title: 'POC 跟踪', module: 'poc' });
+  registerRoute('/bid', { title: '投标档案', module: 'bid' });
+  registerRoute('/vuln', { title: '漏洞跟踪库', module: 'vuln' });
+  registerRoute('/incident', { title: '应急响应记录', module: 'incident' });
 
   // 监听 hash 变化
   window.addEventListener('hashchange', renderRoute);

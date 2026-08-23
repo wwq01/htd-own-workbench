@@ -13,7 +13,7 @@
 <body>
   <!-- Vue 应用挂载点 -->
   <div id="app">
-    <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#64748B;">
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text-tertiary);">
       <span>加载中...</span>
     </div>
   </div>
@@ -83,6 +83,13 @@
   <script src="js/modules/FinancePage.js"></script>
   <script src="js/modules/VaultPage.js"></script>
   <script src="js/modules/RecycleBinPage.js"></script>
+  <script src="js/modules/PocPage.js"></script>
+  <script src="js/modules/BidPage.js"></script>
+  <script src="js/modules/VulnPage.js"></script>
+  <script src="js/modules/IncidentPage.js"></script>
+
+  <!-- ===== 主题管理器（V1.4，置于 app.js 前，防 FOUC，设置 <html> 三属性） ===== -->
+  <script src="js/utils/theme-manager.js"></script>
 
   <!-- ===== 应用入口 ===== -->
   <script src="js/app.js"></script>

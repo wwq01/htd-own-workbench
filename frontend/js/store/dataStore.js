@@ -661,6 +661,134 @@ const useDataStore = Pinia.defineStore('data', {
       await this.refreshAll();
       return r;
     },
+
+    // ============ POC 模块（渗透验证，§4.4） ============
+    // 端点：GET/POST /pocs、GET/PUT/DELETE /pocs/:id、PATCH /pocs/:id/status
+    async fetchPocs(query = {}) {
+      return htdApi.get('/pocs', query);
+    },
+    async createPoc(payload) {
+      const r = await htdApi.post('/pocs', payload);
+      showToast('POC 已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updatePoc(id, payload) {
+      const r = await htdApi.put(`/pocs/${id}`, payload);
+      showToast('POC 已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deletePoc(id) {
+      await htdApi.del(`/pocs/${id}`);
+      showToast('POC 已删除', 'success');
+      await this.refreshAll();
+    },
+    async changePocStatus(id, status) {
+      const r = await htdApi.patch(`/pocs/${id}/status`, { status });
+      showToast('POC 状态已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 投标模块（§4.4） ============
+    // 端点：同模板（bids）；另增 GET /bids?milestoneId=（软关联查询）
+    async fetchBids(query = {}) {
+      return htdApi.get('/bids', query);
+    },
+    async createBid(payload) {
+      const r = await htdApi.post('/bids', payload);
+      showToast('投标记录已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateBid(id, payload) {
+      const r = await htdApi.put(`/bids/${id}`, payload);
+      showToast('投标记录已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteBid(id) {
+      await htdApi.del(`/bids/${id}`);
+      showToast('投标记录已删除', 'success');
+      await this.refreshAll();
+    },
+    async changeBidStatus(id, status) {
+      const r = await htdApi.patch(`/bids/${id}/status`, { status });
+      showToast('投标状态已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 漏洞模块（§4.4，assetGroup 隔离维度） ============
+    // 端点：同模板（vulns）；列表必带 ?assetGroup=（前端分组切换即切该参数）
+    async fetchVulns(query = {}) {
+      return htdApi.get('/vulns', query);
+    },
+    async createVuln(payload) {
+      const r = await htdApi.post('/vulns', payload);
+      showToast('漏洞记录已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateVuln(id, payload) {
+      const r = await htdApi.put(`/vulns/${id}`, payload);
+      showToast('漏洞记录已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteVuln(id) {
+      await htdApi.del(`/vulns/${id}`);
+      showToast('漏洞记录已删除', 'success');
+      await this.refreshAll();
+    },
+    async changeVulnStatus(id, status) {
+      const r = await htdApi.patch(`/vulns/${id}/status`, { status });
+      showToast('漏洞状态已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 应急模块（§4.4） ============
+    // 端点：同模板（incidents）；另增 POST /incidents/:id/timeline、POST /incidents/:id/actions
+    async fetchIncidents(query = {}) {
+      return htdApi.get('/incidents', query);
+    },
+    async createIncident(payload) {
+      const r = await htdApi.post('/incidents', payload);
+      showToast('应急事件已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateIncident(id, payload) {
+      const r = await htdApi.put(`/incidents/${id}`, payload);
+      showToast('应急事件已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteIncident(id) {
+      await htdApi.del(`/incidents/${id}`);
+      showToast('应急事件已删除', 'success');
+      await this.refreshAll();
+    },
+    async changeIncidentStatus(id, status) {
+      const r = await htdApi.patch(`/incidents/${id}/status`, { status });
+      showToast('事件状态已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async addIncidentTimeline(id, entry) {
+      const r = await htdApi.post(`/incidents/${id}/timeline`, entry);
+      showToast('时间线已追加', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async addIncidentAction(id, action) {
+      const r = await htdApi.post(`/incidents/${id}/actions`, action);
+      showToast('处置动作已追加', 'success');
+      await this.refreshAll();
+      return r;
+    },
   },
 });
 

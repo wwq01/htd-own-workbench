@@ -488,7 +488,7 @@ const ProjectPage = {
       <!-- 右侧：详情区 -->
       <div class="project-detail-panel">
         <div v-if="!selectedId" class="empty-state">
-          👈 请从左侧选择项目查看详情
+          <span class="project-detail__hint" v-html="htdIcon('arrowLeft', { size: 18 })"></span> 请从左侧选择项目查看详情
         </div>
         <div v-else-if="detailLoading" class="empty-state">加载中...</div>
         <div v-else-if="!detail" class="empty-state">项目不存在或已被删除</div>

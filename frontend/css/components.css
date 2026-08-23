@@ -40,8 +40,10 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 12px rgba(91, 141, 239, 0.30);
 }
 .htp-btn--primary:not(:disabled):hover {
-  filter: brightness(1.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), 0 6px 18px rgba(91, 141, 239, 0.42);
+  background-image: linear-gradient(180deg, var(--color-primary-deeper) 0%, var(--color-primary-deepest) 100%);
+  border-color: var(--color-primary-deepest);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 18px rgba(91, 141, 239, 0.42);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
   transform: translateY(-1px);
 }
 .htp-btn--primary:not(:disabled):active {
@@ -69,14 +71,16 @@
 
 /* 危险按钮：实心红 + 内高光 */
 .htp-btn--danger {
-  background-image: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%),
-                    linear-gradient(180deg, #F87171 0%, var(--color-danger) 100%);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 100%),
+                    linear-gradient(180deg, var(--color-danger-strong) 0%, var(--color-danger-deep) 100%);
   color: #fff;
-  border-color: #DC2626;
+  border-color: var(--color-danger-deep);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20), 0 4px 12px rgba(239, 68, 68, 0.30);
 }
 .htp-btn--danger:not(:disabled):hover {
-  filter: brightness(1.08);
+  background-image: linear-gradient(180deg, var(--color-danger-strong) 0%, var(--color-danger-deep) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 6px 18px rgba(239, 68, 68, 0.42);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
   transform: translateY(-1px);
 }
 .htp-btn--danger:not(:disabled):active {
@@ -95,6 +99,21 @@
   background-color: var(--glass-bg);
 }
 .htp-btn--text:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* 幽灵按钮：透明底 + 细描边，用于次要/图标型操作（如月份切换、行内轻操作） */
+.htp-btn--ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: var(--glass-border);
+}
+.htp-btn--ghost:not(:disabled):hover {
+  background-color: var(--glass-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.htp-btn--ghost:not(:disabled):active {
   transform: scale(0.97);
 }
 
@@ -653,7 +672,7 @@ html[data-theme="light"] .htp-input[type="date"] {
 .htp-tab--active {
   color: #fff;
   background-image: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%),
-                    linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+                    linear-gradient(180deg, var(--color-primary-deeper) 0%, var(--color-primary-deepest) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px rgba(91, 141, 239, 0.30);
 }
 .htp-tab:active {

@@ -22,6 +22,7 @@ const HtpCommandPalette = {
       nav: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>',
       add: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
       theme: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>',
+      appearance: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg>',
       backup: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-9-9 9.75 9.75 0 016.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>',
     };
 
@@ -43,6 +44,8 @@ const HtpCommandPalette = {
       { id: 'act-new-memo', label: '新建备忘', type: 'action', typeLabel: '新建', iconSvg: ICON.add, handler: () => { if (window.__htdApp) window.__htdApp.appStore && null; }, pinyinKeys: ['xinjianbeiwang', 'xjbw', 'beiwang', 'bw', 'xinjian', 'xj'] },
       { id: 'act-theme-dark', label: '切换暗色主题', type: 'theme', theme: 'dark', typeLabel: '主题', iconSvg: ICON.theme, pinyinKeys: ['andise', 'ads', 'qiehuan', 'qh', 'an', 'hei'] },
       { id: 'act-theme-light', label: '切换亮色主题', type: 'theme', theme: 'light', typeLabel: '主题', iconSvg: ICON.theme, pinyinKeys: ['liangse', 'ls', 'qiehuan', 'qh', 'liang', 'bai'] },
+      { id: 'act-appearance-glass', label: '切换 Liquid Glass 外观', type: 'appearance', appearance: 'liquid-glass', typeLabel: '外观', iconSvg: ICON.appearance, pinyinKeys: ['qiehuan', 'qh', 'liquid', 'glass', 'boli', 'waiguan', 'wzg'] },
+      { id: 'act-appearance-notion', label: '切换 Notion 极简平铺外观', type: 'appearance', appearance: 'notion-flat', typeLabel: '外观', iconSvg: ICON.appearance, pinyinKeys: ['qiehuan', 'qh', 'notion', 'jijian', 'pingpu', 'waiguan', 'wzg'] },
       { id: 'act-backup', label: '立即备份（手动）', type: 'backup', typeLabel: '备份', iconSvg: ICON.backup, pinyinKeys: ['beifen', 'bf', 'lijibeifen', 'shujubeifen'] },
     ];
 
@@ -109,6 +112,8 @@ const HtpCommandPalette = {
           if (window.htdRouter) window.htdRouter.navigate(cmd.path);
         } else if (cmd.type === 'theme') {
           if (appStore) appStore.applyTheme(cmd.theme);
+        } else if (cmd.type === 'appearance') {
+          if (appStore) appStore.applyAppearance({ appearance: cmd.appearance });
         } else if (cmd.type === 'backup') {
           doQuickBackup();
         } else if (cmd.type === 'action' && cmd.handler) {

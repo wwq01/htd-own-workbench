@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 主题 / 视觉 / 类名契约 守门（validate-theme + visual-audit）
+  lint:
+    name: Lint & Contract Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm install
+      - name: Theme / Visual / Class-contract audit
+        run: npm run lint
+
+  # 全部 schema / 枚举 / 状态机能导入（JS 项目「类型」守门）
+  typecheck:
+    name: Schema / Enum / StateMachine gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm install
+      - name: Load all schemas/enums/stateMachines
+        run: npm run audit
+
+  # 功能回归（Vitest，隔离 SQLite）
+  test:
+    name: Unit & Integration (Vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm install
+      - name: Run Vitest
+        run: npm test
+
+  # 产出跨平台可执行文件（门禁：lint+typecheck+test 全绿才允许）
+  build:
+    name: Build (${{ matrix.os }})
+    needs: [lint, typecheck, test]
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            script: build:win
+          - os: macos-latest
+            script: build:mac
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm install
+      - name: Build package
+        run: npm run ${{ matrix.script }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: htd-${{ matrix.os }}
+          path: build/
+          retention-days: 7
+
+  # 启动器正确性探针（macOS runner）
+  launcher-test:
+    name: Launcher probe (macOS)
+    needs: [build]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Download macOS build
+        uses: actions/download-artifact@v4
+        with:
+          name: htd-macos-latest
+          path: build/
+      - name: Self-test launcher (.command)
+        run: bash build/launcher/荒天帝工作台.command --selftest
