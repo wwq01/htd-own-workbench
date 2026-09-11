@@ -44,7 +44,7 @@
       "!src/**/*.test.js"
     ],
     "assets": [
-      "../frontend/**/*",
+      "../frontend/dist/**/*",
       "prisma/schema.prisma",
       "prisma/template.db",
       "node_modules/.prisma/client/**/*",

@@ -35,6 +35,6 @@ describe('阶段 7 路由与交付资源清单', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'backend/package.json'), 'utf8'));
     expect(pkg.scripts['build:win']).toContain('node24-win-x64');
     expect(pkg.scripts['build:mac']).toContain('node22-macos-x64');
-    expect(pkg.pkg.assets).toContain('../frontend/**/*');
+    expect(pkg.pkg.assets).toContain('../frontend/dist/**/*');
   });
 });
