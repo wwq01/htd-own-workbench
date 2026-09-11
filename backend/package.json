@@ -1,6 +1,6 @@
 {
   "name": "huangtiandi-workbench-backend",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "荒天帝工作台 - 后端服务",
   "type": "module",
   "main": "build/server.cjs",
@@ -9,7 +9,7 @@
     "start": "node src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "node scripts/validate-theme.js && node scripts/visual-audit.js",
+    "lint": "node scripts/validate-theme.js && node scripts/visual-audit.js && node scripts/verify-registry.js",
     "theme:validate": "node scripts/validate-theme.js",
     "audit": "node scripts/check-schemas.mjs",
     "db:generate": "prisma generate",
@@ -18,8 +18,9 @@
     "db:studio": "prisma studio",
     "build:prepare": "node scripts/prepare-build.mjs",
     "build:entry": "node scripts/build-entry.mjs",
+    "build:fe": "vite build --config ../frontend/vite.config.js",
     "build:template": "node scripts/build-template-db.mjs",
-    "build:win": "npm run build:prepare && npm run build:template && npm run build:entry && pkg --targets node24-win-x64 --fallback-to-source --public --output ../build/荒天帝工作台.exe .",
+    "build:win": "npm run build:prepare && npm run build:template && npm run build:fe && npm run build:entry && pkg --targets node24-win-x64 --fallback-to-source --public --output ../build/荒天帝工作台.exe .",
     "build:mac": "npm run build:prepare && pkg --targets node22-macos-x64 --output ../build/荒天帝工作台-macos ."
   },
   "dependencies": {

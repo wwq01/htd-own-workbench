@@ -6,6 +6,7 @@ backend/.env
 # Build and runtime output
 build/
 backend/build/
+frontend/dist/
 coverage/
 *.log
 *.db-journal

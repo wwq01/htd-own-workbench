@@ -18,80 +18,12 @@
     </div>
   </div>
 
-  <!-- ===== 第三方依赖库（本地离线） ===== -->
+  <!-- ===== 第三方依赖库（本地离线 IIFE 全局包，须先于模块入口） ===== -->
   <script src="assets/lib/vue.global.prod.js"></script>
   <script src="assets/lib/vue-demi.iife.js"></script>
   <script src="assets/lib/pinia.iife.prod.js"></script>
 
-  <!-- ===== Pinia Store ===== -->
-  <script src="js/store/index.js"></script>
-  <script src="js/store/appStore.js"></script>
-  <script src="js/store/uiStore.js"></script>
-  <script src="js/store/dataStore.js"></script>
-
-  <!-- ===== 前端工具函数 ===== -->
-  <script src="js/utils/date.js"></script>
-  <script src="js/utils/copy.js"></script>
-  <script src="js/utils/common.js"></script>
-  <script src="js/utils/icons.js"></script>
-  <script src="js/utils/observable.js"></script>
-  <script src="js/utils/motion.js"></script>
-  <script src="js/utils/fnv1a-hash.js"></script>
-  <script src="js/utils/draft-state.js"></script>
-  <script src="js/utils/draft-saver.js"></script>
-  <script src="js/utils/polling.js"></script>
-  <script src="js/utils/capability-detector.js"></script>
-
-  <!-- ===== 组合式函数 ===== -->
-  <script src="js/composables/useReducedMotion.js"></script>
-  <script src="js/composables/useSearchParams.js"></script>
-
-  <!-- ===== 接口请求封装 ===== -->
-  <script src="js/api.js"></script>
-
-  <!-- ===== 路由 ===== -->
-  <script src="js/router.js"></script>
-
-  <!-- ===== 通用 UI 组件 ===== -->
-  <script src="js/components/HtpButton.js"></script>
-  <script src="js/components/HtpModal.js"></script>
-  <script src="js/components/HtpCard.js"></script>
-  <script src="js/components/HtpInput.js"></script>
-  <script src="js/components/HtpTextarea.js"></script>
-  <script src="js/components/HtpSelect.js"></script>
-  <script src="js/components/HtpTag.js"></script>
-  <script src="js/components/HtpCheckbox.js"></script>
-  <script src="js/components/HtpEmpty.js"></script>
-  <script src="js/components/StatusDot.js"></script>
-  <script src="js/components/HtpCommandPalette.js"></script>
-  <script src="js/components/ConfirmPermanentDelete.js"></script>
-
-  <!-- ===== 业务页面模块 ===== -->
-  <script src="js/modules/HomePage.js"></script>
-  <script src="js/modules/TodoPage.js"></script>
-  <script src="js/modules/ProjectPage.js"></script>
-  <script src="js/modules/DevelopPage.js"></script>
-  <script src="js/modules/EntertainmentPage.js"></script>
-  <script src="js/modules/StudyPage.js"></script>
-  <script src="js/modules/ReviewPage.js"></script>
-  <script src="js/modules/SecretPage.js"></script>
-  <script src="js/modules/DataPage.js"></script>
-  <script src="js/modules/SettingsPage.js"></script>
-  <script src="js/modules/MeetingPage.js"></script>
-  <script src="js/modules/HabitPage.js"></script>
-  <script src="js/modules/TimeBlockPage.js"></script>
-  <script src="js/modules/FinancePage.js"></script>
-  <script src="js/modules/VaultPage.js"></script>
-  <script src="js/modules/RecycleBinPage.js"></script>
-  <script src="js/modules/PocPage.js"></script>
-  <script src="js/modules/BidPage.js"></script>
-  <script src="js/modules/VulnPage.js"></script>
-  <script src="js/modules/IncidentPage.js"></script>
-
-  <!-- ===== 主题管理器（V1.4，置于 app.js 前，防 FOUC，设置 <html> 三属性） ===== -->
-  <script src="js/utils/theme-manager.js"></script>
-
-  <!-- ===== 应用入口 ===== -->
-  <script src="js/app.js"></script>
+  <!-- ===== S2-1 构建化入口：Vite 聚合全部模块（加载顺序见 frontend/src/entry.js） ===== -->
+  <script type="module" src="/src/entry.js"></script>
 </body>
 </html>

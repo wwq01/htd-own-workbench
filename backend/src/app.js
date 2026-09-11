@@ -4,6 +4,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import appConfig from './config/app.config.js';
 import { responseMiddleware } from './middleware/response.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
@@ -37,6 +38,8 @@ import pocRouter from './modules/poc/poc.router.js';
 import bidRouter from './modules/bid/bid.router.js';
 import vulnRouter from './modules/vuln/vuln.router.js';
 import incidentRouter from './modules/incident/incident.router.js';
+import readingRouter from './modules/reading/reading.router.js';
+import searchRouter from './modules/search/search.router.js';
 import logger from './common/logger.js';
 
 function createApp() {
@@ -101,9 +104,16 @@ function createApp() {
   app.use(`${appConfig.apiPrefix}/bids`, bidRouter);
   app.use(`${appConfig.apiPrefix}/vulns`, vulnRouter);
   app.use(`${appConfig.apiPrefix}/incidents`, incidentRouter);
+  app.use(`${appConfig.apiPrefix}/readings`, readingRouter);
+  app.use(`${appConfig.apiPrefix}/search`, searchRouter);
 
   // ===== 前端静态资源托管 =====
-  const frontendDir = appConfig.frontendDir;
+  // S2-1：优先使用 Vite 构建产物 frontend/dist；缺失或为空时回退到无构建 frontend/
+  // （源文件为原生 ESM 友好写法，dist 缺失时浏览器仍以原生 ESM 加载，零回归）。
+  const frontendRoot = appConfig.frontendDir;
+  const frontendDist = path.join(frontendRoot, 'dist');
+  const hasBuiltDist = fs.existsSync(frontendDist) && fs.readdirSync(frontendDist).length > 0;
+  const frontendDir = hasBuiltDist ? frontendDist : frontendRoot;
   app.use(express.static(frontendDir, {
     index: 'index.html',
     setHeaders: (res, filePath) => {
