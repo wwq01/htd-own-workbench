@@ -101,7 +101,7 @@ V1.5.0 已交付完成（数据可视化 + 搜索 + 字段配置平台 + 阅读�
 | S1-1 | ✅ 已完成 | registry.js 单一数据源 + verify-registry 门禁 |
 | S1-2 | ⏳ 降级 S2 | 实测 53/60 input 已带 `htp-input`，余 7 处为 file/checkbox；需先增强 HtpInput 属性透传 |
 | S1-3 | ✅ 已完成 | 状态机收敛进配置平台；修复 `todo.toggleStatus` 绕过状态机的真 bug |
-| S1-4 | ⚠️ 待用户决策 | customFields 死配置（后端有结构、前端零消费）—— 接线 or 删除 |
+| S1-4 | ✅ 已接上 | customFields 非死配置：字段配置平台（system/fieldConfig）读写 SystemSetting.config.customFields，ReadingPage/SettingsPage 消费；project 域定义已就绪待 UI 外露（可选增强） |
 | S1-5 | ✅ 已完成 | Vuln 资产分组从 localStorage 入库；测试首次跑通抓出 `updatedAt: BigInt` 类型 bug 并修复 |
 | S1-6 | ✅ 已完成 | surface 令牌收口 + notion-flat 重映射实色 |
 | S1-7 | ✅ 已完成 | 补 `--shadow-card` 基础层定义；顶栏/输入去硬编码 |
