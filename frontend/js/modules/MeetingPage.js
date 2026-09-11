@@ -259,10 +259,10 @@ const MeetingPage = {
           <htp-input v-model="filterKeyword" placeholder="搜索会议主题"></htp-input>
         </div>
         <div class="htp-filter-bar__item">
-          <input type="date" class="htp-input" v-model="filterFrom" title="召开时间从" />
+          <HtpInput type="date"  v-model="filterFrom" title="召开时间从"  />
         </div>
         <div class="htp-filter-bar__item">
-          <input type="date" class="htp-input" v-model="filterTo" title="召开时间至" />
+          <HtpInput type="date"  v-model="filterTo" title="召开时间至"  />
         </div>
         <div class="htp-filter-bar__item">
           <htp-select v-model="filterProject" :options="projectOptions"></htp-select>
@@ -332,7 +332,7 @@ const MeetingPage = {
           <div class="form-row-2">
             <div class="form-item">
               <label class="form-item__label"><span class="text-danger">*</span> 召开时间</label>
-              <input type="datetime-local" class="htp-input" v-model="form.heldAt" />
+              <HtpInput type="datetime-local"  v-model="form.heldAt"  />
               <div class="form-hint">格式：年/月/日 时:分（24 小时制）</div>
             </div>
             <div class="form-item">
@@ -382,7 +382,7 @@ const MeetingPage = {
             <div v-for="(a, i) in form.actionItems" :key="i" class="dynamic-row dynamic-row--action">
               <htp-input v-model="a.content" placeholder="行动内容" class="flex-1"></htp-input>
               <htp-input v-model="a.owner" placeholder="负责人" style="max-width:120px"></htp-input>
-              <input type="date" class="htp-input" v-model="a.due" style="max-width:150px" title="截止日期" />
+              <HtpInput type="date"  v-model="a.due" style="max-width:150px" title="截止日期"  />
               <htp-checkbox v-model="a.done" label="已完成"></htp-checkbox>
               <button class="htp-btn htp-btn--danger htp-btn--sm" @click="removeAction(i)">删除</button>
             </div>

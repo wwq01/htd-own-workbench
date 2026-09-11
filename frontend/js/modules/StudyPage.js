@@ -347,7 +347,7 @@ const StudyPage = {
         <div class="htp-filter-bar">
           <div class="form-row-2">
             <htp-select v-model="filterRecordType" :options="STUDY_TYPE_OPTIONS" placeholder="全部类型"></htp-select>
-            <input class="htp-input" v-model="filterRecordTechDir" placeholder="技术方向筛选" />
+            <HtpInput v-model="filterRecordTechDir" placeholder="技术方向筛选"  />
           </div>
           <button class="htp-btn htp-btn--primary htp-btn--sm" @click="openCreateRecord">+ 新建记录</button>
         </div>
@@ -422,23 +422,23 @@ const StudyPage = {
           </div>
           <div>
             <label class="form-label">技术方向</label>
-            <input class="htp-input" v-model="recordForm.techDirection" placeholder="如：前端/后端/安全" />
+            <HtpInput v-model="recordForm.techDirection" placeholder="如：前端/后端/安全"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">学习主题 *</label>
-            <input class="htp-input" v-model="recordForm.topic" placeholder="学习主题" />
+            <HtpInput v-model="recordForm.topic" placeholder="学习主题"  />
           </div>
           <div>
             <label class="form-label">学习时长(h)</label>
-            <input class="htp-input" v-model="recordForm.duration" type="number" step="0.5" min="0" placeholder="0" />
+            <HtpInput v-model="recordForm.duration" type="number" step="0.5" min="0" placeholder="0"  />
           </div>
           <div>
             <label class="form-label">学习日期 *</label>
-            <input class="htp-input" v-model="recordForm.studyDate" type="date" />
+            <HtpInput v-model="recordForm.studyDate" type="date"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">资料来源</label>
-            <input class="htp-input" v-model="recordForm.source" placeholder="资料来源（可选）" />
+            <HtpInput v-model="recordForm.source" placeholder="资料来源（可选）"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">核心笔记</label>
@@ -456,19 +456,19 @@ const StudyPage = {
         <div class="form-grid">
           <div class="form-grid--full">
             <label class="form-label">资源标题 *</label>
-            <input class="htp-input" v-model="pendingForm.title" placeholder="资源标题" />
+            <HtpInput v-model="pendingForm.title" placeholder="资源标题"  />
           </div>
           <div>
             <label class="form-label">资源类型</label>
-            <input class="htp-input" v-model="pendingForm.resourceType" placeholder="如：文章/视频/书籍" />
+            <HtpInput v-model="pendingForm.resourceType" placeholder="如：文章/视频/书籍"  />
           </div>
           <div>
             <label class="form-label">来源链接</label>
-            <input class="htp-input" v-model="pendingForm.sourceLink" placeholder="URL（可选）" />
+            <HtpInput v-model="pendingForm.sourceLink" placeholder="URL（可选）"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">备注</label>
-            <input class="htp-input" v-model="pendingForm.remark" placeholder="备注说明（可选）" />
+            <HtpInput v-model="pendingForm.remark" placeholder="备注说明（可选）"  />
           </div>
         </div>
         <template #footer>
@@ -491,15 +491,15 @@ const StudyPage = {
           </div>
           <div>
             <label class="form-label">技术方向</label>
-            <input class="htp-input" v-model="completeForm.techDirection" placeholder="技术方向" />
+            <HtpInput v-model="completeForm.techDirection" placeholder="技术方向"  />
           </div>
           <div>
             <label class="form-label">学习时长(h)</label>
-            <input class="htp-input" v-model="completeForm.duration" type="number" step="0.5" min="0" placeholder="0" />
+            <HtpInput v-model="completeForm.duration" type="number" step="0.5" min="0" placeholder="0"  />
           </div>
           <div>
             <label class="form-label">学习日期 *</label>
-            <input class="htp-input" v-model="completeForm.studyDate" type="date" />
+            <HtpInput v-model="completeForm.studyDate" type="date"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">核心笔记</label>

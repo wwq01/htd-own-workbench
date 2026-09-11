@@ -181,7 +181,7 @@ const SecretPage = {
           <htp-select v-model="filterType" :options="SECRET_TYPE_FILTER" placeholder="全部类型"></htp-select>
         </div>
         <div class="htp-filter-bar__item" style="flex:1">
-          <input class="htp-input" v-model="filterKeyword" placeholder="名称/场景/备注关键字搜索" />
+          <HtpInput v-model="filterKeyword" placeholder="名称/场景/备注关键字搜索"  />
         </div>
         <button class="htp-btn htp-btn--primary htp-btn--sm" @click="openCreate">+ 新增凭据</button>
       </div>
@@ -231,7 +231,7 @@ const SecretPage = {
         <div class="form-grid">
           <div class="form-grid--full">
             <label class="form-label">凭据名称 *</label>
-            <input class="htp-input" v-model="form.name" placeholder="如：测试环境-管理员账号" />
+            <HtpInput v-model="form.name" placeholder="如：测试环境-管理员账号"  />
           </div>
           <div>
             <label class="form-label">类型</label>
@@ -239,7 +239,7 @@ const SecretPage = {
           </div>
           <div>
             <label class="form-label">有效期</label>
-            <input class="htp-input" v-model="form.expiryDate" type="date" />
+            <HtpInput v-model="form.expiryDate" type="date"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">口令/内容 *</label>
@@ -247,7 +247,7 @@ const SecretPage = {
           </div>
           <div class="form-grid--full">
             <label class="form-label">使用场景</label>
-            <input class="htp-input" v-model="form.usageScenario" placeholder="如：XX系统测试环境登录" />
+            <HtpInput v-model="form.usageScenario" placeholder="如：XX系统测试环境登录"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">备注</label>

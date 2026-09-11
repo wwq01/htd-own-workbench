@@ -232,7 +232,7 @@ const BidPage = {
           <div class="form-row-2">
             <div class="form-item">
               <label class="form-item__label">截止日期 (deadline)</label>
-              <input type="date" class="htp-input" v-model="form.deadline" />
+              <HtpInput type="date"  v-model="form.deadline"  />
             </div>
             <div class="form-item">
               <label class="form-item__label">版本 (bidVersion)</label>

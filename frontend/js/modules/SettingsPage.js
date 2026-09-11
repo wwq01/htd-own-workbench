@@ -341,7 +341,7 @@ const SettingsPage = {
               <span v-if="currentDropdown.length === 0" class="text-tertiary">暂无可选项</span>
             </div>
             <div class="cfg-add">
-              <input class="htp-input" v-model="newDropdownValue" placeholder="新增下拉项名称" @keyup.enter="addDropdownValue" />
+              <HtpInput v-model="newDropdownValue" placeholder="新增下拉项名称" @keyup.enter="addDropdownValue"  />
               <button class="htp-btn htp-btn--sm" type="button" @click="addDropdownValue">添加</button>
             </div>
           </div>
@@ -365,8 +365,8 @@ const SettingsPage = {
             </div>
             <span v-else class="text-tertiary">该模块暂无自定义字段</span>
             <div class="cfg-add">
-              <input class="htp-input" v-model="newField.key" placeholder="字段标识" />
-              <input class="htp-input" v-model="newField.label" placeholder="显示名称" />
+              <HtpInput v-model="newField.key" placeholder="字段标识"  />
+              <HtpInput v-model="newField.label" placeholder="显示名称"  />
               <htp-select v-model="newField.type" :options="CUSTOM_FIELD_TYPES" placeholder="字段类型"></htp-select>
               <button class="htp-btn htp-btn--sm" type="button" @click="addCustomField">添加字段</button>
             </div>

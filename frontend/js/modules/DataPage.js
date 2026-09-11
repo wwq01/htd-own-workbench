@@ -418,7 +418,7 @@ const DataPage = {
             <htp-select v-model="filterEnv" :options="DEPLOY_ENV_FILTER" placeholder="全部环境"></htp-select>
           </div>
           <div class="htp-filter-bar__item" style="flex:1">
-            <input class="htp-input" v-model="filterKeyword" placeholder="名称/设备/IP/备注关键字搜索" />
+            <HtpInput v-model="filterKeyword" placeholder="名称/设备/IP/备注关键字搜索"  />
           </div>
           <button class="htp-btn htp-btn--primary htp-btn--sm" @click="openDeployCreate">+ 新增记录</button>
         </div>
@@ -474,7 +474,7 @@ const DataPage = {
           <div class="form-grid">
             <div class="form-grid--full">
               <label class="form-label">环境名称 *</label>
-              <input class="htp-input" v-model="deployForm.name" placeholder="如：客户A-生产环境部署" />
+              <HtpInput v-model="deployForm.name" placeholder="如：客户A-生产环境部署"  />
             </div>
             <div>
               <label class="form-label">环境类型</label>
@@ -482,11 +482,11 @@ const DataPage = {
             </div>
             <div>
               <label class="form-label">IP地址</label>
-              <input class="htp-input" v-model="deployForm.ipAddress" placeholder="如：192.168.1.100" />
+              <HtpInput v-model="deployForm.ipAddress" placeholder="如：192.168.1.100"  />
             </div>
             <div class="form-grid--full">
               <label class="form-label">设备信息</label>
-              <input class="htp-input" v-model="deployForm.deviceType" placeholder="如：Dell R740 / 16C 32G" />
+              <HtpInput v-model="deployForm.deviceType" placeholder="如：Dell R740 / 16C 32G"  />
             </div>
             <div class="form-grid--full">
               <label class="form-label">配置说明</label>
@@ -603,7 +603,7 @@ const DataPage = {
           <p class="text-tertiary">将保存当前完整 SQLite 数据库到本机备份目录，可随时恢复。</p>
           <div class="mt-base">
             <label class="form-label">备份备注（可选，便于识别）</label>
-            <input class="htp-input" v-model="backupNote" placeholder="如：升级 V1.2 前 / 季度归档" maxlength="40" />
+            <HtpInput v-model="backupNote" placeholder="如：升级 V1.2 前 / 季度归档" maxlength="40"  />
           </div>
           <template #footer>
             <button class="htp-btn htp-btn--secondary" @click="backupNoteModalVisible = false">取消</button>
@@ -638,7 +638,7 @@ const DataPage = {
           <p style="color: var(--color-danger);">此操作将删除「{{ CLEAR_SCOPE_OPTIONS.find(item => item.value === clearScope)?.label }}」中的数据，且无法撤销。</p>
           <div style="margin-top: 12px;">
             <label class="form-label">请输入「确认清空」</label>
-            <input class="htp-input" v-model="clearPhrase" placeholder="确认清空" />
+            <HtpInput v-model="clearPhrase" placeholder="确认清空"  />
           </div>
           <template #footer>
             <button class="htp-btn htp-btn--secondary" @click="clearConfirm = false">取消</button>

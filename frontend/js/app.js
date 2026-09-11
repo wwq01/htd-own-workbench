@@ -226,12 +226,12 @@ const App = {
         <header class="app-topbar">
           <span class="app-topbar__title" id="page-title">{{ pageTitle }}</span>
           <div class="app-topbar__memo-input">
-            <input
+            <HtpInput
               v-model="memoInput"
-              class="htp-input"
+              
               placeholder="快速备忘... 输入后按回车保存"
               @keyup.enter="saveMemo"
-            />
+             />
           </div>
           <div class="app-topbar__actions">
             <button class="htp-btn htp-btn--text htp-btn--sm app-topbar__search" @click="openPalette" title="命令面板 (Ctrl/Cmd+K)">

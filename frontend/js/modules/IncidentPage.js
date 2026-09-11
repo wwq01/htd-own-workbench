@@ -275,7 +275,7 @@ const IncidentPage = {
             <div class="form-item">
               <label class="form-item__label">追加时间线（POST /incidents/:id/timeline）</label>
               <div class="flex items-center gap-xs" style="margin-bottom:6px">
-                <input type="datetime-local" class="htp-input" v-model="timelineTime" style="flex:0 0 200px" />
+                <HtpInput type="datetime-local"  v-model="timelineTime" style="flex:0 0 200px"  />
                 <htp-input v-model="timelineDesc" placeholder="时间线描述" style="flex:1" maxlength="500"></htp-input>
                 <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="addTimelineEntry">添加</button>
               </div>
@@ -291,7 +291,7 @@ const IncidentPage = {
               <div class="flex items-center gap-xs" style="margin-bottom:6px">
                 <htp-input v-model="actionText" placeholder="处置动作" style="flex:1" maxlength="500"></htp-input>
                 <htp-input v-model="actionOwner" placeholder="负责人" style="flex:0 0 120px" maxlength="60"></htp-input>
-                <input type="datetime-local" class="htp-input" v-model="actionTime" style="flex:0 0 180px" />
+                <HtpInput type="datetime-local"  v-model="actionTime" style="flex:0 0 180px"  />
                 <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="addActionEntry">添加</button>
               </div>
               <ul v-if="editing.responseActions && editing.responseActions.length" class="text-sm text-tertiary" style="padding-left:18px;list-style:disc">

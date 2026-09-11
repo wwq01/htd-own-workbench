@@ -356,7 +356,7 @@ const ReviewPage = {
         <div v-if="editing.type === 'week'" class="form-grid">
           <div class="form-grid--full">
             <label class="form-label">周次标识</label>
-            <input class="htp-input" v-model="weekForm.weekKey" placeholder="如：2026-W32" />
+            <HtpInput v-model="weekForm.weekKey" placeholder="如：2026-W32"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">本周核心成果亮点</label>
@@ -376,7 +376,7 @@ const ReviewPage = {
           </div>
           <div class="form-grid--full">
             <label class="form-label">备注</label>
-            <input class="htp-input" v-model="weekForm.remark" placeholder="可选" />
+            <HtpInput v-model="weekForm.remark" placeholder="可选"  />
           </div>
         </div>
 
@@ -412,7 +412,7 @@ const ReviewPage = {
           </div>
           <div>
             <label class="form-label">备注</label>
-            <input class="htp-input" v-model="projectForm.remark" />
+            <HtpInput v-model="projectForm.remark"  />
           </div>
         </div>
 

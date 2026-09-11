@@ -321,11 +321,11 @@ const TodoPage = {
           ></htp-select>
         </div>
         <div v-if="activeTab === 'history'" class="htp-filter-bar__item">
-          <input
+          <HtpInput
             type="date"
-            class="htp-input"
+            
             v-model="historyDate"
-          />
+           />
         </div>
         <button
           v-if="activeTab === 'today'"
@@ -461,11 +461,11 @@ const TodoPage = {
           <div class="form-row-2">
             <div class="form-item">
               <label class="form-item__label">日期</label>
-              <input
+              <HtpInput
                 type="date"
-                class="htp-input"
+                
                 v-model="form.todoDate"
-              />
+               />
             </div>
             <div class="form-item">
               <label class="form-item__label">预计耗时</label>
@@ -546,7 +546,7 @@ const TodoPage = {
           </div>
           <div class="form-item" v-if="delayMode === 'date'">
             <label class="form-item__label">选择日期</label>
-            <input type="date" class="htp-input" v-model="delayToDate" :min="minDelayDate" />
+            <HtpInput type="date"  v-model="delayToDate" :min="minDelayDate"  />
           </div>
         </div>
       </htp-modal>

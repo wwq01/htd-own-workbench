@@ -203,7 +203,7 @@ const EntertainmentPage = {
           <htp-select v-model="filterStatus" :options="ENT_STATUS_FILTER" placeholder="全部状态"></htp-select>
         </div>
         <div class="htp-filter-bar__item" style="flex:1">
-          <input class="htp-input" v-model="filterKeyword" placeholder="名称/进度/短评关键字搜索" />
+          <HtpInput v-model="filterKeyword" placeholder="名称/进度/短评关键字搜索"  />
         </div>
         <button class="htp-btn htp-btn--primary htp-btn--sm" @click="openCreate">+ 新增</button>
       </div>
@@ -243,7 +243,7 @@ const EntertainmentPage = {
         <div class="form-grid">
           <div class="form-grid--full">
             <label class="form-label">作品名称 *</label>
-            <input class="htp-input" v-model="form.name" placeholder="如：黑神话：悟空" />
+            <HtpInput v-model="form.name" placeholder="如：黑神话：悟空"  />
           </div>
           <div>
             <label class="form-label">类型</label>
@@ -262,7 +262,7 @@ const EntertainmentPage = {
           </div>
           <div class="form-grid--full">
             <label class="form-label">进度记录</label>
-            <input class="htp-input" v-model="form.progress" placeholder="如：第3章 / 第12集 / 70小时" />
+            <HtpInput v-model="form.progress" placeholder="如：第3章 / 第12集 / 70小时"  />
           </div>
           <div class="form-grid--full">
             <label class="form-label">个人短评</label>

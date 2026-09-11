@@ -48,7 +48,7 @@ const ConfirmPermanentDelete = {
           <code style="color: var(--color-danger); font-weight: 700;">{{ requireText }}</code>
           以激活删除按钮
         </label>
-        <input class="htp-input" v-model="typed" :placeholder="requireText" />
+        <HtpInput v-model="typed" :placeholder="requireText"  />
       </div>
       <template #footer>
         <button class="htp-btn htp-btn--secondary" @click="handleClose">取消</button>

@@ -345,7 +345,7 @@ const DevelopPage = {
         <div class="htp-filter-bar">
           <div class="form-row-2">
             <htp-select v-model="filterProjectStatus" :options="DEV_PROJECT_STATUS_OPTIONS" placeholder="全部状态"></htp-select>
-            <input class="htp-input" v-model="filterProjectKeyword" placeholder="项目名称搜索" />
+            <HtpInput v-model="filterProjectKeyword" placeholder="项目名称搜索"  />
           </div>
           <button class="htp-btn htp-btn--primary htp-btn--sm" @click="openCreateProject">+ 新建项目</button>
         </div>
@@ -381,7 +381,7 @@ const DevelopPage = {
         <div class="htp-filter-bar">
           <div class="form-row-2">
             <htp-select v-model="filterSnippetCategory" :options="DEV_SNIPPET_CATEGORY_OPTIONS" placeholder="全部分类"></htp-select>
-            <input class="htp-input" v-model="filterSnippetKeyword" placeholder="片段名称/代码搜索" />
+            <HtpInput v-model="filterSnippetKeyword" placeholder="片段名称/代码搜索"  />
           </div>
           <button class="htp-btn htp-btn--primary htp-btn--sm" @click="openCreateSnippet">+ 新建片段</button>
         </div>
@@ -414,7 +414,7 @@ const DevelopPage = {
         <div class="htp-filter-bar">
           <div class="form-row-2">
             <htp-select v-model="filterIssueStatus" :options="DEV_ISSUE_STATUS_OPTIONS" placeholder="全部状态"></htp-select>
-            <input class="htp-input" v-model="filterIssueKeyword" placeholder="问题标题搜索" />
+            <HtpInput v-model="filterIssueKeyword" placeholder="问题标题搜索"  />
           </div>
           <button class="htp-btn htp-btn--primary htp-btn--sm" @click="openCreateIssue">+ 新建问题</button>
         </div>
@@ -451,7 +451,7 @@ const DevelopPage = {
         <div class="form-grid">
           <div class="form-grid--full">
             <label class="form-label">项目名称 *</label>
-            <input class="htp-input" v-model="projectForm.name" placeholder="项目名称" />
+            <HtpInput v-model="projectForm.name" placeholder="项目名称"  />
           </div>
           <div>
             <label class="form-label">状态</label>
@@ -465,13 +465,13 @@ const DevelopPage = {
             <label class="form-label">技术栈标签</label>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
               <htp-tag v-for="(tag, idx) in projectForm.techStack" :key="idx" type="info" closable @close="removeTechTag(idx)">{{ tag }}</htp-tag>
-              <input class="htp-input" v-model="newTechTag" placeholder="输入标签回车添加" style="width: 180px;" @keyup.enter="addTechTag" />
+              <HtpInput v-model="newTechTag" placeholder="输入标签回车添加" style="width: 180px;" @keyup.enter="addTechTag"  />
             </div>
           </div>
           <div class="form-grid--full">
             <label class="form-label">待完成事项</label>
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <input class="htp-input" v-model="newTodoItem" placeholder="输入事项回车添加" @keyup.enter="addTodoItem" />
+              <HtpInput v-model="newTodoItem" placeholder="输入事项回车添加" @keyup.enter="addTodoItem"  />
               <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="addTodoItem">添加</button>
             </div>
             <div v-for="(item, idx) in projectForm.todoItems" :key="idx" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
@@ -491,7 +491,7 @@ const DevelopPage = {
         <div class="form-grid">
           <div>
             <label class="form-label">片段名称 *</label>
-            <input class="htp-input" v-model="snippetForm.name" placeholder="片段名称" />
+            <HtpInput v-model="snippetForm.name" placeholder="片段名称"  />
           </div>
           <div>
             <label class="form-label">分类</label>
@@ -503,7 +503,7 @@ const DevelopPage = {
           </div>
           <div class="form-grid--full">
             <label class="form-label">备注</label>
-            <input class="htp-input" v-model="snippetForm.remark" placeholder="备注说明（可选）" />
+            <HtpInput v-model="snippetForm.remark" placeholder="备注说明（可选）"  />
           </div>
         </div>
         <template #footer>
@@ -517,7 +517,7 @@ const DevelopPage = {
         <div class="form-grid">
           <div class="form-grid--full">
             <label class="form-label">问题标题 *</label>
-            <input class="htp-input" v-model="issueForm.title" placeholder="问题标题" />
+            <HtpInput v-model="issueForm.title" placeholder="问题标题"  />
           </div>
           <div>
             <label class="form-label">状态</label>

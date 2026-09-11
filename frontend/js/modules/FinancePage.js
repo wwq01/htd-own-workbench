@@ -421,7 +421,7 @@ const FinancePage = {
           </div>
           <div class="finance-summary__month">
             <label class="text-sm text-tertiary">统计月份</label>
-            <input type="month" class="htp-input" v-model="financeMonth" />
+            <HtpInput type="month"  v-model="financeMonth"  />
           </div>
         </div>
 
@@ -517,7 +517,7 @@ const FinancePage = {
             <div class="form-row-2">
               <div class="form-item">
                 <label class="form-item__label"><span class="text-danger">*</span> 日期</label>
-                <input type="date" class="htp-input" v-model="form.date" />
+                <HtpInput type="date"  v-model="form.date"  />
               </div>
               <div class="form-item">
                 <label class="form-item__label"><span class="text-danger">*</span> 类型</label>
