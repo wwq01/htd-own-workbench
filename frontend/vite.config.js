@@ -1,33 +1,29 @@
 import { fileURLToPath } from 'url';
 import path from 'path';
-import fs from 'fs';
+import vue from '@vitejs/plugin-vue';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// 把「运行时以经典 <script> 引用的 IIFE 全局包」在构建后拷贝进 dist。
-// 原因：Vite 不会打包非 module 的 <script src="...">（会留下悬空引用导致白屏），
-// 这些文件必须作为静态资源随 dist 一同发布；保持 index.html 的 assets/lib/... 引用不变。
-function copyIifeLibs() {
-  return {
-    name: 'copy-iife-libs',
-    closeBundle() {
-      const src = path.join(__dirname, 'assets/lib');
-      const dest = path.join(__dirname, 'dist/assets/lib');
-      if (!fs.existsSync(src)) return;
-      fs.mkdirSync(dest, { recursive: true });
-      fs.cpSync(src, dest, { recursive: true });
-    },
-  };
-}
-
-// 荒天帝工作台 · S2-1 Vite 构建化配置
-// 策略：源文件保持「无构建全局脚本」写法（window.X = X 自附着，使用 window.Vue / window.Pinia 全局）。
-// vue/pinia 不通过 npm 安装，直接复用 index.html 注入的 IIFE 全局包，离线优先、零网络依赖。
-// entry.js 按 index.html 原脚本顺序 import 各文件触发副作用；Vite 仅做模块聚合 + 内容哈希 + 相对路径。
+// 荒天帝工作台 · S2 阶段 Vite 配置（路线 B：Vue ESM + SFC）
+// - vue/pinia 改为 ESM 依赖，构建期打包进 dist（运行时零网络，守离线优先红线）
+// - src/globals.js 把 ESM Vue/Pinia 挂到 window，兼容旧 JS 组件裸 `Vue.xxx`（零改动）
+// - alias 指向 vue.esm-bundler.js 保留运行时模板编译，兼容旧 template 字符串组件
+//   （否则默认 runtime-only 构建会因模板字符串缺编译器而白屏）
+// - @vitejs/plugin-vue 处理新建的 .vue（SFC）组件
 export default {
   root: __dirname,
-  base: './',
-  plugins: [copyIifeLibs()],
+base: './',
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      vue: 'vue/dist/vue.esm-bundler.js',
+    },
+  },
+  define: {
+    __VUE_OPTIONS_API__: true,
+    __VUE_PROD_DEVTOOLS__: false,
+    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,

@@ -18,12 +18,7 @@
     </div>
   </div>
 
-  <!-- ===== 第三方依赖库（本地离线 IIFE 全局包，须先于模块入口） ===== -->
-  <script src="assets/lib/vue.global.prod.js"></script>
-  <script src="assets/lib/vue-demi.iife.js"></script>
-  <script src="assets/lib/pinia.iife.prod.js"></script>
-
-  <!-- ===== S2-1 构建化入口：Vite 聚合全部模块（加载顺序见 frontend/src/entry.js） ===== -->
-  <script type="module" src="/src/entry.js"></script>
+  <!-- ===== S2 阶段入口（路线 B：Vue ESM + SFC，兼容层见 src/globals.js） ===== -->
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

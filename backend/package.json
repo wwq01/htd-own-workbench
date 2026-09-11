@@ -18,7 +18,7 @@
     "db:studio": "prisma studio",
     "build:prepare": "node scripts/prepare-build.mjs",
     "build:entry": "node scripts/build-entry.mjs",
-    "build:fe": "vite build --config ../frontend/vite.config.js",
+    "build:fe": "npm --prefix ../frontend run build",
     "build:template": "node scripts/build-template-db.mjs",
     "build:win": "npm run build:prepare && npm run build:template && npm run build:fe && npm run build:entry && pkg --targets node24-win-x64 --fallback-to-source --public --output ../build/荒天帝工作台.exe .",
     "build:mac": "npm run build:prepare && pkg --targets node22-macos-x64 --output ../build/荒天帝工作台-macos ."
@@ -32,10 +32,14 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/compiler-sfc": "^3.5.42",
     "@yao-pkg/pkg": "6.22.0",
+    "pinia": "^4.0.3",
     "prisma": "^5.22.0",
     "sql.js": "^1.14.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "vue": "^3.5.42"
   },
   "bin": "build/server.cjs",
   "pkg": {
