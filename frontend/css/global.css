@@ -43,6 +43,7 @@
 
   /* --- 品牌/强调色（更通透蓝，去网页感） --- */
   --color-primary: #5B8DEF;
+  --color-on-primary: #ffffff;
   --color-primary-hover: #4A7CE0;
   --color-primary-deeper: #2456BF;
   --color-primary-deepest: #1E48A8;
@@ -202,6 +203,7 @@ html[data-theme="light"] {
   --text-tertiary: #64748B;
   --text-disabled: #94A3B8;
   --color-primary: #2F6BEE;
+  --color-on-primary: #ffffff;
   --color-primary-hover: #1F5BD9;
   --color-primary-deeper: #1F5BD9;
   --color-primary-deepest: #1849B5;

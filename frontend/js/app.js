@@ -3,6 +3,14 @@
  * 创建 Vue 实例、注册 Pinia、注册全局组件、初始化路由、挂载布局
  */
 
+// ===== S2-6 地基组件（.vue SFC，依赖 B0 开启的 SFC 能力）=====
+import HtpSkeleton from './components/HtpSkeleton.vue';
+import HtpSwitch from './components/HtpSwitch.vue';
+import HtpTable from './components/HtpTable.vue';
+import HtpDrawer from './components/HtpDrawer.vue';
+import HtpTooltip from './components/HtpTooltip.vue';
+import HtpMarkdownEditor from './components/HtpMarkdownEditor.vue';
+
 // ===== 导航菜单配置 =====
 // ===== 导航菜单配置（S1：由 registry.js 单一数据源派生，新增模块无需改本文件）=====
 const NAV_ITEMS =
@@ -300,6 +308,14 @@ app.component('HtpEmpty', HtpEmpty);
 app.component('StatusDot', StatusDot);
 app.component('HtpCommandPalette', HtpCommandPalette);
 app.component('ConfirmPermanentDelete', ConfirmPermanentDelete);
+
+// S2-6 地基组件注册（.vue SFC）
+app.component('HtpSkeleton', HtpSkeleton);
+app.component('HtpSwitch', HtpSwitch);
+app.component('HtpTable', HtpTable);
+app.component('HtpDrawer', HtpDrawer);
+app.component('HtpTooltip', HtpTooltip);
+app.component('HtpMarkdownEditor', HtpMarkdownEditor);
 
 // 挂载应用
 app.mount('#app');

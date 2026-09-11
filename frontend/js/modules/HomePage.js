@@ -109,7 +109,7 @@ const HomePage = {
     const studySvg = Vue.computed(() => {
       if (!charts.value) return '';
       const data = charts.value.home.studyHours.map((d) => ({ label: d.label, value: d.value }));
-      return C.barChart({ data, height: 150, color: '#22D3EE' });
+      return C.barChart({ data, height: 150, color: 'var(--chart-series-2)' });
     });
     const habitSvg = Vue.computed(() => {
       if (!charts.value) return '';

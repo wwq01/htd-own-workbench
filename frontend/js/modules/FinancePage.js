@@ -337,14 +337,14 @@ const FinancePage = {
       if (!charts.value || !charts.value.finance) return '';
       return C.barChart({
         data: charts.value.finance.monthlyIncomeExpense.map((d) => ({ label: d.label, value: d.income })),
-        height: 170, color: '#34D399',
+        height: 170, color: 'var(--chart-series-3)',
       });
     });
     const expenseSvg = Vue.computed(() => {
       if (!charts.value || !charts.value.finance) return '';
       return C.barChart({
         data: charts.value.finance.monthlyIncomeExpense.map((d) => ({ label: d.label, value: d.expense })),
-        height: 170, color: '#F87171',
+        height: 170, color: 'var(--chart-series-6)',
       });
     });
     const pieSvg = Vue.computed(() => {

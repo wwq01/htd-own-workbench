@@ -287,7 +287,7 @@ const TimeBlockPage = {
           <div class="tb-timer__clock" :class="{ 'tb-timer__clock--overtime': isOvertime }">
             {{ elapsedText }}
           </div>
-          <div class="tb-timer__progress" style="background:#eef0f4;border-radius:8px;height:10px;overflow:hidden">
+          <div class="tb-timer__progress" style="background:var(--bg-tertiary);border-radius:8px;height:10px;overflow:hidden">
             <div class="tb-timer__progress-bar" :style="{ width: progressPct + '%', background: isOvertime ? 'var(--color-danger)' : 'var(--color-primary)', height:'100%' }"></div>
           </div>
           <div class="tb-timer__meta">
@@ -312,7 +312,7 @@ const TimeBlockPage = {
           <div v-if="stats.byType.length === 0" class="text-sm text-tertiary">暂无数据</div>
           <div v-for="t in stats.byType" :key="t.type" class="tb-type-bar">
             <span class="tb-type-bar__label">{{ TIME_BLOCK_TYPE_LABEL[t.type] || t.type }}</span>
-            <div class="tb-type-bar__track" style="flex:1;background:#eef0f4;border-radius:6px;height:10px;overflow:hidden">
+            <div class="tb-type-bar__track" style="flex:1;background:var(--bg-tertiary);border-radius:6px;height:10px;overflow:hidden">
               <div
                 class="tb-type-bar__fill"
                 :style="{ width: (t.minutes / typeMaxMinutes * 100) + '%', background: typeColor(t.type), height:'100%' }"
