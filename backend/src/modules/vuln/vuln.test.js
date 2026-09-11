@@ -63,3 +63,35 @@ describe('Vuln Service', () => {
 });
 
 afterAll(async () => { await prisma.$disconnect(); });
+
+describe('Vuln 资产分组持久化（S1-5）', () => {
+  afterAll(async () => {
+    await prisma.systemSetting.deleteMany({ where: { key: 'vuln.assetGroups' } });
+  });
+
+  it('未配置时读取返回空数组（不抛错，前端可降级）', async () => {
+    await prisma.systemSetting.deleteMany({ where: { key: 'vuln.assetGroups' } });
+    const groups = await vulnService.getAssetGroups();
+    expect(groups).toEqual([]);
+  });
+
+  it('保存后可读回，且自动去空去重', async () => {
+    const saved = await vulnService.saveAssetGroups(['WEB', 'WEB', '  ', 'APP']);
+    expect(saved).toEqual(['WEB', 'APP']);
+    const read = await vulnService.getAssetGroups();
+    expect(read).toEqual(['WEB', 'APP']);
+  });
+
+  it('重复保存为 upsert，不产生重复键行', async () => {
+    await vulnService.saveAssetGroups(['WEB', 'DB']);
+    await vulnService.saveAssetGroups(['WEB', 'DB', 'CLOUD']);
+    const rows = await prisma.systemSetting.findMany({ where: { key: 'vuln.assetGroups' } });
+    expect(rows.length).toBe(1);
+    expect(await vulnService.getAssetGroups()).toEqual(['WEB', 'DB', 'CLOUD']);
+  });
+
+  it('非数组入参应被 schema 拦截', async () => {
+    await expect(vulnService.saveAssetGroups('WEB')).rejects.toThrow();
+    await expect(vulnService.saveAssetGroups([123])).rejects.toThrow();
+  });
+});

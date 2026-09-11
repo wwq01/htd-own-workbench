@@ -42,6 +42,20 @@ class VulnController {
       res.success(await vulnService.changeStatus(req.params.id, body.status), '状态已更新');
     } catch (err) { next(err); }
   }
+
+  /** S1-5：读取资产分组 */
+  async getAssetGroups(req, res, next) {
+    try {
+      res.success(await vulnService.getAssetGroups());
+    } catch (err) { next(err); }
+  }
+
+  /** S1-5：保存资产分组 */
+  async saveAssetGroups(req, res, next) {
+    try {
+      res.success(await vulnService.saveAssetGroups(req.body), '资产分组已保存');
+    } catch (err) { next(err); }
+  }
 }
 
 export default new VulnController();

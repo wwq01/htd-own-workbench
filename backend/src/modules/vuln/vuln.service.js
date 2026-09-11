@@ -8,11 +8,16 @@ import {
   listVulnSchema,
   vulnIdSchema,
   changeVulnStatusSchema,
+  assetGroupsSchema,
 } from './vuln.schema.js';
 import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { VULN_FIX_STATUS, VULN_FIX_STATUS_TRANSITIONS, SEVERITY } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import prisma from '../../database/prisma.js';
+
+/** S1-5：资产分组持久化键（原存 localStorage，清缓存即丢，违反数据自主） */
+const VULN_ASSET_GROUPS_KEY = 'vuln.assetGroups';
 
 class VulnService {
   /**
@@ -143,6 +148,35 @@ class VulnService {
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     };
+  }
+
+  /**
+   * S1-5：读取资产分组（持久化于 SystemSetting，替代 localStorage）
+   * 未配置或数据损坏时返回空数组，不抛错（前端可降级）
+   */
+  async getAssetGroups() {
+    const row = await prisma.systemSetting.findUnique({ where: { key: VULN_ASSET_GROUPS_KEY } });
+    if (!row) return [];
+    try {
+      const parsed = JSON.parse(row.value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * S1-5：保存资产分组（去空 + 去重 + 上限校验）
+   */
+  async saveAssetGroups(payload) {
+    const parsed = assetGroupsSchema.parse(payload);
+    const unique = [...new Set(parsed.map((g) => String(g).trim()).filter(Boolean))];
+    await prisma.systemSetting.upsert({
+      where: { key: VULN_ASSET_GROUPS_KEY },
+      create: { key: VULN_ASSET_GROUPS_KEY, value: JSON.stringify(unique) },
+      update: { value: JSON.stringify(unique) },
+    });
+    return unique;
   }
 }
 

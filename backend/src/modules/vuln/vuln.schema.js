@@ -45,3 +45,8 @@ export const listVulnSchema = z.object({
 export const vulnIdSchema = z.object({ id: z.string().min(1, 'ID 不能为空') });
 
 export const changeVulnStatusSchema = z.object({ status: z.enum(FIX_STATUS_VALUES) });
+
+/** S1-5：资产分组列表（去空去重后持久化，上限 100 项防止滥用） */
+export const assetGroupsSchema = z
+  .array(z.string().min(1).max(50))
+  .max(100, '资产分组数量超出上限');
