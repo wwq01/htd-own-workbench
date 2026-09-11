@@ -13,12 +13,19 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { REVIEW_TYPE, PROJECT_PHASE_TRANSITIONS } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { parseFieldsParam, pickFields } from '../../lib/fieldSelector.js';
+import {
+  ensureFieldConfigCache,
+  getStateMachineSync,
+} from '../system/fieldConfig.service.js';
 
 class ProjectService {
   /**
    * 新增项目
    */
   async create(payload) {
+    // 先装载 §8.3 配置缓存，保证 schema 里配置驱动的下拉校验读到最新值
+    await ensureFieldConfigCache();
     const data = createProjectSchema.parse(payload);
 
     // securityDomains 转 JSON 字符串存储
@@ -46,6 +53,7 @@ class ProjectService {
    * 编辑项目（部分字段更新）
    */
   async update(payload) {
+    await ensureFieldConfigCache();
     const parsed = updateProjectSchema.parse(payload);
     const { id, ...fields } = parsed;
     const exists = await projectRepository.findById(id);
@@ -92,7 +100,11 @@ class ProjectService {
     if (fromPhase === toPhase) {
       return this._normalizeProject(exists);
     }
-    const allowed = PROJECT_PHASE_TRANSITIONS[fromPhase] || [];
+    // 迁移表取自配置平台（§8.3），未配置时回落默认常量
+    await ensureFieldConfigCache();
+    const smConfig = getStateMachineSync('project.phase');
+    const transitions = smConfig?.transitions || PROJECT_PHASE_TRANSITIONS;
+    const allowed = transitions[fromPhase] || [];
     if (!allowed.includes(toPhase)) {
       throw new BusinessError(
         ErrorCodes.PARAM_ERROR,
@@ -153,6 +165,7 @@ class ProjectService {
    * 列表查询（带筛选）
    */
   async list(query = {}) {
+    await ensureFieldConfigCache();
     const q = listProjectSchema.parse(query);
     const list = await projectRepository.listWithFilters({
       phase: q.phase,
@@ -160,7 +173,9 @@ class ProjectService {
       securityDomain: q.securityDomain,
       keyword: q.keyword,
     });
-    return list.map(p => this._normalizeProject(p));
+    const normalized = list.map(p => this._normalizeProject(p));
+    const fields = parseFieldsParam(q.fields);
+    return fields ? pickFields(normalized, fields) : normalized;
   }
 
   /**

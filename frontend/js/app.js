@@ -4,33 +4,16 @@
  */
 
 // ===== 导航菜单配置 =====
-const NAV_ITEMS = [
-  { path: '/', label: '首页总览', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  { path: '/todo', label: '今日/明日计划', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
-  { path: '/project', label: '项目管理', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-  { path: '/meeting', label: '会议纪要', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8zm6 0a4 4 0 100-8 4 4 0 000 8z' },
-  { path: '/develop', label: '开发工作', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
-  { path: '/time-block', label: '时间块/番茄钟', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { path: '/entertainment', label: '游戏娱乐', icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { path: '/finance', label: '财务速记', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { path: '/study', label: '充电学习', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
-  { path: '/habit', label: '习惯打卡', icon: 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A8.003 8.003 0 0118 15c-1.657 0-3-1.343-3-3 0 1.657-1.343 3-3 3s-3-1.343-3-3c0 1.657-1.343 3-3 3a8 8 0 008 8z' },
-  { path: '/review', label: '复盘与沉淀', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-  { path: '/vault', label: '沉淀 Vault', icon: 'M4 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM2 12h20M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6' },
-  { path: '/secret', label: '凭据保险箱', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-  { path: '/data', label: '数据与部署', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4' },
-  { path: '/system/recycle-bin', label: '回收站', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
-  { path: '/poc', label: 'POC 跟踪', icon: '<path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>' },
-  { path: '/bid', label: '投标档案', icon: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>' },
-  { path: '/vuln', label: '漏洞跟踪库', icon: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/>' },
-  { path: '/incident', label: '应急响应记录', icon: '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>' },
-  { path: '/settings', label: '系统设置', icon: 'M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z M19.4 15a1.7 1.7 0 00.34 1.88l.06.06-1.42 1.42-.06-.06A1.7 1.7 0 0016.44 18l-.38.16a1.7 1.7 0 00-1.06 1.57V20h-2v-.27a1.7 1.7 0 00-1.06-1.57l-.38-.16a1.7 1.7 0 00-1.88.34l-.06.06-1.42-1.42.06-.06A1.7 1.7 0 008.6 15l-.16-.38a1.7 1.7 0 00-1.57-1.06H6v-2h.87a1.7 1.7 0 001.57-1.06L8.6 10a1.7 1.7 0 00-.34-1.88l-.06-.06L9.62 6.64l.06.06A1.7 1.7 0 0011.56 7l.38-.16A1.7 1.7 0 0013 5.27V5h2v.27a1.7 1.7 0 001.06 1.57l.38.16a1.7 1.7 0 001.88-.34l.06-.06 1.42 1.42-.06.06A1.7 1.7 0 0019.4 10l.16.38a1.7 1.7 0 001.57 1.06H22v2h-.87a1.7 1.7 0 00-1.57 1.06L19.4 15z' },
-];
+// ===== 导航菜单配置（S1：由 registry.js 单一数据源派生，新增模块无需改本文件）=====
+const NAV_ITEMS =
+  window.htdRegistry && window.htdRegistry.buildNavItems
+    ? window.htdRegistry.buildNavItems()
+    : [];
 
 // ===== 产品 Logo SVG =====
 const LOGO_SVG = `<svg class="app-sidebar__logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M16 2L4 7v8c0 7 5 12 12 15 7-3 12-8 12-15V7L16 2z" fill="#3B82F6" fill-opacity="0.15" stroke="#3B82F6" stroke-width="1.5"/>
-  <path d="M16 8L10 14v8h4v-4h4v4h4v-8L16 8z" fill="#3B82F6"/>
+  <path d="M16 2L4 7v8c0 7 5 12 12 15 7-3 12-8 12-15V7L16 2z" fill="var(--color-primary)" fill-opacity="0.15" stroke="var(--color-primary)" stroke-width="1.5"/>
+  <path d="M16 8L10 14v8h4v-4h4v4h4v-8L16 8z" fill="var(--color-primary)"/>
 </svg>`;
 
 // ===== 主应用组件 =====
@@ -61,28 +44,11 @@ const App = {
     let backupPollTimer = null;
 
     // 页面组件映射
-    const pageComponents = {
-      home: HomePage,
-      todo: TodoPage,
-      project: ProjectPage,
-      develop: DevelopPage,
-      entertainment: EntertainmentPage,
-      study: StudyPage,
-      review: ReviewPage,
-      secret: SecretPage,
-      data: DataPage,
-      settings: SettingsPage,
-      meeting: MeetingPage,
-      habit: HabitPage,
-      'time-block': TimeBlockPage,
-      finance: FinancePage,
-      vault: VaultPage,
-      'recycle-bin': RecycleBinPage,
-      poc: PocPage,
-      bid: BidPage,
-      vuln: VulnPage,
-      incident: IncidentPage,
-    };
+    // 页面组件映射（S1：由 registry.js 派生，延迟求值以等待全局组件变量就绪）
+    const pageComponents =
+      window.htdRegistry && window.htdRegistry.buildPageComponents
+        ? window.htdRegistry.buildPageComponents()
+        : {};
 
     // 当前页面组件
     const currentPage = Vue.computed(() => {
@@ -114,6 +80,12 @@ const App = {
     // 导航点击
     function handleNav(path) {
       htdRouter.navigate(path);
+    }
+
+    // 导航图标内联渲染：兼容裸 path d 字符串（多数项）与完整 <path> 子元素串（poc/bid/vuln/incident）
+    function navIconInner(icon) {
+      if (typeof icon === 'string' && icon.trim().startsWith('<')) return icon;
+      return `<path stroke-linecap="round" stroke-linejoin="round" d="${icon}"></path>`;
     }
 
     // 命令面板唤起
@@ -215,6 +187,7 @@ const App = {
       saveLabel,
       backupLabel,
       handleNav,
+      navIconInner,
       saveMemo,
       handleExport,
       openPalette,
@@ -237,9 +210,7 @@ const App = {
             :class="{ 'app-sidebar__nav-item--active': appStore.currentPath === item.path }"
             @click="handleNav(item.path)"
           >
-            <svg class="app-sidebar__nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" :d="item.icon"></path>
-            </svg>
+            <svg class="app-sidebar__nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" v-html="navIconInner(item.icon)"></svg>
             <span>{{ item.label }}</span>
           </div>
         </nav>

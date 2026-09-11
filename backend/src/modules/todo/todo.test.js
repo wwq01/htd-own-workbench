@@ -49,6 +49,16 @@ describe('Todo Service 集成测试', () => {
     expect(list.some(t => t.title.startsWith(PREFIX))).toBe(true);
   });
 
+  it('list ?fields 裁剪仅返回指定字段（V1.5）', async () => {
+    await todoService.create({ title: `${PREFIX}裁剪`, todoDate: TODAY, priority: '高', content: '备注内容' });
+    const list = await todoService.list({ todoDate: TODAY, fields: 'id,title' });
+    const hit = list.find(t => t.title === `${PREFIX}裁剪`);
+    expect(hit).toBeTruthy();
+    expect(hit.id).toBeTruthy();
+    expect('priority' in hit).toBe(false);
+    expect('content' in hit).toBe(false);
+  });
+
   it('应支持切换完成状态', async () => {
     const t = await todoService.create({ title: `${PREFIX}切换`, todoDate: TODAY });
     const done = await todoService.toggleStatus(t.id);
@@ -57,6 +67,18 @@ describe('Todo Service 集成测试', () => {
     const undone = await todoService.toggleStatus(t.id);
     expect(undone.status).toBe('pending');
     expect(undone.completedAt).toBeNull();
+  });
+
+  it('toggleStatus 应受 5 态状态机约束（S1-3：cancelled 不可直接切 completed）', async () => {
+    const t = await todoService.create({ title: `${PREFIX}状态机守卫`, todoDate: TODAY });
+    // pending → cancelled 合法
+    const cancelled = await todoService.changeStatus(t.id, 'cancelled');
+    expect(cancelled.status).toBe('cancelled');
+    // cancelled → completed 非法：toggleStatus 必须被状态机拦截（修复前会放行）
+    await expect(todoService.toggleStatus(t.id)).rejects.toThrow();
+    // 校验被拦截后状态未变
+    const after = await todoService.getById(t.id);
+    expect(after.status).toBe('cancelled');
   });
 
   it('应支持更新待办', async () => {

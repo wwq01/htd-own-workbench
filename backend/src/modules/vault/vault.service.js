@@ -91,6 +91,24 @@ class VaultService {
   }
 
   /**
+   * 通用「按来源幂等沉淀」：V1.5 阅读项→Vault 一键转化复用。
+   * 同一 (sourceType + sourceId) 已存在则直接返回，不重复创建。
+   */
+  async upsertFromSource({ sourceType, sourceId, title, content, tags = [] }) {
+    const existed = await vaultRepository.findOne({ sourceType, sourceId });
+    if (existed) return existed;
+    return this.create({
+      topic: title || '阅读沉淀',
+      content: content || '',
+      tags,
+      status: 'DRAFT',
+      sourceType,
+      sourceId,
+      sourceUrl: null,
+    });
+  }
+
+  /**
    * 编辑沉淀（部分字段更新）
    */
   async update(id, payload) {

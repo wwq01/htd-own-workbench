@@ -25,6 +25,7 @@ const FinancePage = {
   name: 'FinancePage',
   setup() {
     const dataStore = useDataStore();
+    const C = window.htdCharts;
     // ============ 标签 ============
     const activeTab = Vue.ref('finance'); // finance / contract
 
@@ -78,6 +79,16 @@ const FinancePage = {
       }
     }
 
+    // ============ 图表数据（V1.5 §8.1 财务统计页） ============
+    const charts = Vue.ref(null);
+    async function loadCharts() {
+      try {
+        charts.value = await dataStore.fetchCharts();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     // ============ 统一加载 ============
     function loadList() {
       if (activeTab.value === 'finance') {
@@ -88,7 +99,7 @@ const FinancePage = {
       }
     }
     Vue.watch([activeTab, financeMonth, filterType, filterCategory], loadList);
-    Vue.onMounted(loadList);
+    Vue.onMounted(() => { loadList(); loadCharts(); });
 
     // ============ 收支记录：新增/编辑 ============
     const formModalVisible = Vue.ref(false);
@@ -321,6 +332,40 @@ const FinancePage = {
       return node.dueDate < today && Number(node.receivedAmount || 0) < Number(node.expectedAmount || 0);
     }
 
+    // ============ 图表渲染（V1.5 §8.1） ============
+    const incomeSvg = Vue.computed(() => {
+      if (!charts.value || !charts.value.finance) return '';
+      return C.barChart({
+        data: charts.value.finance.monthlyIncomeExpense.map((d) => ({ label: d.label, value: d.income })),
+        height: 170, color: '#34D399',
+      });
+    });
+    const expenseSvg = Vue.computed(() => {
+      if (!charts.value || !charts.value.finance) return '';
+      return C.barChart({
+        data: charts.value.finance.monthlyIncomeExpense.map((d) => ({ label: d.label, value: d.expense })),
+        height: 170, color: '#F87171',
+      });
+    });
+    const pieSvg = Vue.computed(() => {
+      if (!charts.value || !charts.value.finance) return '';
+      return C.donutChart({
+        data: charts.value.finance.categoryPie,
+        width: 200, height: 200,
+      });
+    });
+    const pieLegend = Vue.computed(() => {
+      if (!charts.value || !charts.value.finance) return '';
+      return C.legend(charts.value.finance.categoryPie.map((c) => ({ label: c.label, color: c.color })));
+    });
+    const contractSvg = Vue.computed(() => {
+      if (!charts.value || !charts.value.finance) return '';
+      return C.barChart({
+        data: charts.value.finance.contractProgress.map((c) => ({ label: c.label, value: c.received })),
+        height: 170, color: 'var(--chart-series-1)',
+      });
+    });
+
     return {
       // 标签
       activeTab,
@@ -343,6 +388,8 @@ const FinancePage = {
       parseTags, parseNodes, formatAmount, formatDateOnly,
       typeArrow, contractProgress, isOverdue,
       FINANCE_TYPE_LABEL, FINANCE_CATEGORY_LABEL,
+      // 图表（V1.5 §8.1）
+      charts, incomeSvg, expenseSvg, pieSvg, pieLegend, contractSvg,
     };
   },
   template: `
@@ -375,6 +422,36 @@ const FinancePage = {
           <div class="finance-summary__month">
             <label class="text-sm text-tertiary">统计月份</label>
             <input type="month" class="htp-input" v-model="financeMonth" />
+          </div>
+        </div>
+
+        <!-- ============ 图表区（V1.5 §8.1 财务统计页） ============ -->
+        <div v-if="charts && charts.finance" class="htd-chart-grid">
+          <div class="htd-chart-card">
+            <div class="htd-chart-card__title">
+              <span v-html="htdIcon('barChart', { size: 16 })" style="margin-right:6px;display:inline-flex;vertical-align:-3px"></span> 月度收支趋势
+            </div>
+            <div class="text-sm text-tertiary">收入</div>
+            <div class="htd-chart" v-html="incomeSvg"></div>
+            <div class="text-sm text-tertiary">支出</div>
+            <div class="htd-chart" v-html="expenseSvg"></div>
+          </div>
+
+          <div class="htd-chart-card">
+            <div class="htd-chart-card__title">
+              <span v-html="htdIcon('pieChart', { size: 16 })" style="margin-right:6px;display:inline-flex;vertical-align:-3px"></span> 分类支出占比
+            </div>
+            <div class="htd-chart-card__body">
+              <div class="htd-chart" v-html="pieSvg"></div>
+              <div v-html="pieLegend"></div>
+            </div>
+          </div>
+
+          <div class="htd-chart-card">
+            <div class="htd-chart-card__title">
+              <span v-html="htdIcon('barChart', { size: 16 })" style="margin-right:6px;display:inline-flex;vertical-align:-3px"></span> 合同回款进度（已回款）
+            </div>
+            <div class="htd-chart" v-html="contractSvg"></div>
           </div>
         </div>
 
@@ -470,7 +547,7 @@ const FinancePage = {
               <htp-textarea v-model="form.remark" :rows="3" placeholder="补充说明（可选）" maxlength="1000"></htp-textarea>
             </div>
             <div v-if="amountLarge" class="finance-amount-warn">
-              <span class="text-danger">⚠ 金额较大，请确认</span>
+              <span class="text-danger">金额较大，请确认</span>
               <htp-checkbox v-model="confirmed" label="我已确认金额无误"></htp-checkbox>
             </div>
           </div>

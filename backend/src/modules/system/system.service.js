@@ -12,6 +12,7 @@ import {
   startOfMonth,
   endOfMonth,
   formatDate,
+  getWeekKey,
   daysBetween,
 } from '../../common/utils/date.js';
 import { BusinessError } from '../../common/error.js';
@@ -50,6 +51,54 @@ const RECYCLE_BIN_CONFIG = [
 ];
 
 const RECYCLE_BIN_MODEL_SET = new Set(RECYCLE_BIN_CONFIG.map((c) => c.model));
+
+// V1.5 图表配色（与前端 charts.js PALETTE 对齐）
+const CHART_PALETTE = ['#5B8DEF', '#22D3EE', '#34D399', '#FBBF24', '#FB923C', '#F87171', '#94A3B8', '#60A5FA', '#2DD4BF', '#A3E635'];
+const FINANCE_CATEGORY_LABELS = { FOOD: '餐饮', HOUSING: '居住', TRANSPORT: '交通', SALARY: '工资', REIMBURSEMENT: '报销', OTHER: '其他' };
+
+function round1(n) { return Math.round((Number(n) || 0) * 10) / 10; }
+function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+function parseYMD(s) {
+  if (!s) return null;
+  const parts = String(s).split('-').map(Number);
+  if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+function lastNDates(n) {
+  const arr = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    arr.push(formatDate(d));
+  }
+  return arr;
+}
+function lastNMonths(n) {
+  const arr = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    arr.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return arr;
+}
+function lastNWeeks(n) {
+  const arr = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i * 7);
+    arr.push(getWeekKey(d));
+  }
+  return arr;
+}
+function weekdayShort(dateStr) {
+  const d = parseYMD(dateStr);
+  if (!d) return '';
+  const names = ['日', '一', '二', '三', '四', '五', '六'];
+  return '周' + names[d.getDay()];
+}
 
 class SystemService {
   /**
@@ -552,6 +601,206 @@ class SystemService {
       sourceUrl: candidate.sourceUrl || null,
       title: candidate.title || '沉淀草稿',
     });
+  }
+
+  /**
+   * 图表聚合数据（V1.5 §8.1）
+   * 返回首页 / 学习 / 财务三类图表所需的全部数据集。
+   * 性能策略：个人数据量级小，直接拉取相关列后在 JS 端分桶聚合，避免 N+1 与复杂 SQL。
+   */
+  async getCharts() {
+    const last7 = lastNDates(7);
+    const last14 = lastNDates(14);
+    const last6Months = lastNMonths(6);
+
+    // ---- 待办：本周完成趋势 ----
+    const todos = await prisma.todo.findMany({
+      where: { deletedAt: null },
+      select: { createdAt: true, completedAt: true },
+    });
+    const weekCompletionTrend = last7.map((d) => ({
+      label: weekdayShort(d),
+      date: d,
+      completed: todos.filter((t) => t.completedAt && formatDate(t.completedAt) === d).length,
+      created: todos.filter((t) => formatDate(t.createdAt) === d).length,
+    }));
+
+    // ---- 项目：阶段分布 ----
+    const phaseGroups = await prisma.project.groupBy({
+      by: ['phase'],
+      where: { deletedAt: null },
+      _count: { _all: true },
+    });
+    const projectPhaseDistribution = phaseGroups.map((g, i) => ({
+      label: g.phase,
+      value: g._count._all,
+      color: PROJECT_PHASE_COLORS[g.phase] || CHART_PALETTE[i % CHART_PALETTE.length],
+    }));
+
+    // ---- 学习：最近 7 天时长 ----
+    const studyRecs = await prisma.studyRecord.findMany({
+      where: { deletedAt: null },
+      select: { studyDate: true, duration: true, techDirection: true },
+    });
+    const studyHours = last7.map((d) => ({
+      label: weekdayShort(d),
+      date: d,
+      value: round1(studyRecs.filter((r) => r.studyDate === d).reduce((s, r) => s + (r.duration || 0), 0)),
+    }));
+
+    // ---- 习惯：最近 7 天完成率 ----
+    const habits = await prisma.habit.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true, frequency: true, dailyTargetCount: true, weeklyTargetDays: true },
+    });
+    const checkins = await prisma.habitCheckIn.findMany({
+      where: { deletedAt: null, date: { in: last7 } },
+      select: { habitId: true, count: true },
+    });
+    const habitCompletionRate = habits
+      .map((h) => {
+        const actual = checkins.filter((c) => c.habitId === h.id).reduce((s, c) => s + (c.count || 0), 0);
+        const expected = h.frequency === 'WEEKLY' ? (h.weeklyTargetDays || 7) : (h.dailyTargetCount || 1) * 7;
+        const rate = expected > 0 ? Math.min(100, Math.round((actual / expected) * 100)) : 0;
+        return { label: h.name, value: rate };
+      })
+      .filter((h) => h.label);
+
+    // ---- 学习：日 / 周 / 月 + 方向堆叠 ----
+    const study = this._buildStudyCharts(studyRecs, last14, last6Months);
+
+    // ---- 财务：月度收支 / 分类饼 / 合同回款 ----
+    const finance = await this._buildFinanceCharts();
+
+    return {
+      home: { weekCompletionTrend, projectPhaseDistribution, studyHours, habitCompletionRate },
+      study,
+      finance,
+    };
+  }
+
+  // 学习图表子聚合（日/周/月 + 技术方向堆叠）
+  _buildStudyCharts(studyRecs, last14, last6Months) {
+    const daily = last14.map((d) => ({
+      label: d.slice(5),
+      date: d,
+      value: round1(studyRecs.filter((r) => r.studyDate === d).reduce((s, r) => s + (r.duration || 0), 0)),
+    }));
+
+    const weekMap = {};
+    studyRecs.forEach((r) => {
+      if (!r.studyDate) return;
+      const wk = getWeekKey(parseYMD(r.studyDate) || new Date());
+      weekMap[wk] = (weekMap[wk] || 0) + (r.duration || 0);
+    });
+    const weekly = lastNWeeks(8).map((wk) => ({ label: wk, value: round1(weekMap[wk] || 0) }));
+
+    const monthMap = {};
+    studyRecs.forEach((r) => {
+      const mk = (r.studyDate || '').slice(0, 7);
+      if (mk) monthMap[mk] = (monthMap[mk] || 0) + (r.duration || 0);
+    });
+    const monthly = last6Months.map((mk) => ({ label: mk, value: round1(monthMap[mk] || 0) }));
+
+    const dirs = [...new Set(studyRecs.map((r) => r.techDirection || '未分类'))];
+    const series = dirs.map((d, i) => ({ key: d, label: d, color: CHART_PALETTE[i % CHART_PALETTE.length] }));
+    const dirMap = {};
+    studyRecs.forEach((r) => {
+      const mk = (r.studyDate || '').slice(0, 7);
+      const dir = r.techDirection || '未分类';
+      dirMap[mk] = dirMap[mk] || {};
+      dirMap[mk][dir] = (dirMap[mk][dir] || 0) + (r.duration || 0);
+    });
+    const directionStacked = {
+      series,
+      data: last6Months.map((mk) => {
+        const vals = dirMap[mk] || {};
+        const values = {};
+        dirs.forEach((d) => { values[d] = round1(vals[d] || 0); });
+        return { label: mk, values };
+      }),
+    };
+    return { daily, weekly, monthly, directionStacked };
+  }
+
+  // 财务图表子聚合（月度收支 / 分类饼图 / 合同回款进度）
+  async _buildFinanceCharts() {
+    const fin = await prisma.financeRecord.findMany({
+      where: { deletedAt: null },
+      select: { date: true, type: true, amount: true, category: true },
+    });
+    const last6 = lastNMonths(6);
+    const monthMap = {};
+    last6.forEach((mk) => { monthMap[mk] = { income: 0, expense: 0 }; });
+    fin.forEach((r) => {
+      const mk = formatDate(r.date).slice(0, 7);
+      if (monthMap[mk]) {
+        if (r.type === 'INCOME') monthMap[mk].income += (r.amount || 0);
+        else monthMap[mk].expense += (r.amount || 0);
+      }
+    });
+    const monthlyIncomeExpense = last6.map((mk) => ({
+      label: mk,
+      income: round2(monthMap[mk].income),
+      expense: round2(monthMap[mk].expense),
+    }));
+
+    const catMap = {};
+    fin.filter((r) => r.type === 'EXPENSE').forEach((r) => {
+      const c = r.category || 'OTHER';
+      catMap[c] = (catMap[c] || 0) + (r.amount || 0);
+    });
+    const categoryPie = Object.keys(catMap)
+      .map((c, i) => ({ label: FINANCE_CATEGORY_LABELS[c] || c, value: round2(catMap[c]), color: CHART_PALETTE[i % CHART_PALETTE.length] }))
+      .filter((x) => x.value > 0);
+
+    const contracts = await prisma.contractReceivable.findMany({
+      where: { deletedAt: null },
+      select: { contractNo: true, contractAmount: true, totalReceived: true },
+      orderBy: { contractAmount: 'desc' },
+      take: 6,
+    });
+    const contractProgress = contracts.map((c) => ({
+      label: c.contractNo,
+      planned: round2(c.contractAmount || 0),
+      received: round2(c.totalReceived || 0),
+    }));
+
+    return { monthlyIncomeExpense, categoryPie, contractProgress };
+  }
+
+  /**
+   * 项目详情图表（V1.5 §8.1）：里程碑时间线 + 任务速率
+   * @param {string} projectId
+   */
+  async getProjectCharts(projectId) {
+    if (!projectId) {
+      throw new BusinessError(ErrorCodes.PARAM_ERROR, '缺少项目 ID');
+    }
+    const milestones = await prisma.projectMilestone.findMany({
+      where: { projectId, deletedAt: null },
+      select: { name: true, dueDate: true, completed: true },
+      orderBy: { dueDate: 'asc' },
+    });
+    const tasks = await prisma.projectTask.findMany({
+      where: { projectId, deletedAt: null },
+      select: { completed: true },
+    });
+    const timeline = milestones.map((m) => ({
+      label: m.name,
+      date: m.dueDate,
+      done: !!m.completed,
+      color: m.completed ? '#34D399' : '#5B8DEF',
+    }));
+    const total = tasks.length || 0;
+    const done = tasks.filter((t) => t.completed).length;
+    const taskVelocity = {
+      total,
+      done,
+      pending: total - done,
+      completionRate: total ? Math.round((done / total) * 100) : 0,
+    };
+    return { timeline, taskVelocity };
   }
 }
 

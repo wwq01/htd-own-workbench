@@ -28,20 +28,14 @@ const HtpCommandPalette = {
 
     // 命令表（离线，pinyinKeys 手写）
     const COMMANDS = [
-      { id: 'nav-home', label: '首页总览', type: 'nav', path: '/', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['shouye', 'sy', 'shouyezonglan'] },
-      { id: 'nav-todo', label: '今日/明日计划', type: 'nav', path: '/todo', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['jinri', 'jr', 'mingri', 'mr', 'jihua', 'jh', 'jintian', 'jihua'] },
-      { id: 'nav-project', label: '项目管理', type: 'nav', path: '/project', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['xiangmu', 'xm', 'xiangmuguanli'] },
-      { id: 'nav-develop', label: '开发工作', type: 'nav', path: '/develop', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['kaifa', 'kf', 'kaifagongzuo'] },
-      { id: 'nav-ent', label: '游戏娱乐', type: 'nav', path: '/entertainment', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['youxi', 'yx', 'yule', 'youxuyule'] },
-      { id: 'nav-study', label: '充电学习', type: 'nav', path: '/study', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['xuexi', 'xx', 'chongdian', 'cd', 'chongdianxuexi'] },
-      { id: 'nav-review', label: '复盘与沉淀', type: 'nav', path: '/review', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['fupan', 'fp', 'chendian', 'cds', 'fupanyuchendian'] },
-      { id: 'nav-secret', label: '凭据保险箱', type: 'nav', path: '/secret', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['pingju', 'pj', 'baoxianxiang', 'bx', 'pingjubaoxianxiang'] },
-      { id: 'nav-data', label: '数据与部署', type: 'nav', path: '/data', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['shuju', 'sj', 'bushu', 'bs', 'shujuheyushu'] },
-      { id: 'nav-settings', label: '系统设置', type: 'nav', path: '/settings', typeLabel: '跳转', iconSvg: ICON.nav, pinyinKeys: ['shezhi', 'sz', 'xitong', 'xt', 'xitongshezhi'] },
+      // S1：导航命令由 registry.js 单一数据源派生（新增模块无需改本文件）
+      ...((window.htdRegistry && window.htdRegistry.buildNavCommands)
+        ? window.htdRegistry.buildNavCommands(ICON.nav)
+        : []),
       { id: 'act-new-todo', label: '新建今日任务', type: 'nav', path: '/todo', typeLabel: '新建', iconSvg: ICON.add, pinyinKeys: ['xinjian', 'xj', 'renwu', 'rw', 'xinjianrenwu', 'xinjianjinrirenwu'] },
       { id: 'act-new-project', label: '新建项目', type: 'nav', path: '/project', typeLabel: '新建', iconSvg: ICON.add, pinyinKeys: ['xinjianxiangmu', 'xjxm', 'xinjian', 'xj'] },
       { id: 'act-new-secret', label: '新建凭据', type: 'nav', path: '/secret', typeLabel: '新建', iconSvg: ICON.add, pinyinKeys: ['xinjianpingju', 'xjpj', 'xinjian', 'xj'] },
-      { id: 'act-new-memo', label: '新建备忘', type: 'action', typeLabel: '新建', iconSvg: ICON.add, handler: () => { if (window.__htdApp) window.__htdApp.appStore && null; }, pinyinKeys: ['xinjianbeiwang', 'xjbw', 'beiwang', 'bw', 'xinjian', 'xj'] },
+      { id: 'act-new-memo', label: '新建备忘', type: 'action', typeLabel: '新建', iconSvg: ICON.add, handler: () => { if (window.htdRouter) window.htdRouter.navigate('/'); setTimeout(() => { const el = document.querySelector('.app-topbar__memo-input input'); if (el) el.focus(); }, 120); }, pinyinKeys: ['xinjianbeiwang', 'xjbw', 'beiwang', 'bw', 'xinjian', 'xj'] },
       { id: 'act-theme-dark', label: '切换暗色主题', type: 'theme', theme: 'dark', typeLabel: '主题', iconSvg: ICON.theme, pinyinKeys: ['andise', 'ads', 'qiehuan', 'qh', 'an', 'hei'] },
       { id: 'act-theme-light', label: '切换亮色主题', type: 'theme', theme: 'light', typeLabel: '主题', iconSvg: ICON.theme, pinyinKeys: ['liangse', 'ls', 'qiehuan', 'qh', 'liang', 'bai'] },
       { id: 'act-appearance-glass', label: '切换 Liquid Glass 外观', type: 'appearance', appearance: 'liquid-glass', typeLabel: '外观', iconSvg: ICON.appearance, pinyinKeys: ['qiehuan', 'qh', 'liquid', 'glass', 'boli', 'waiguan', 'wzg'] },
@@ -85,10 +79,67 @@ const HtpCommandPalette = {
 
     const results = Vue.computed(() => searchCommands(query.value));
 
+    // ===== 跨模块搜索分支（V1.5 §8.2） =====
+    const searchIconSvg = window.htdIcon('search', { size: 16 });
+    const searchRaw = Vue.ref(null);
+    const searchTotal = Vue.ref(0);
+    const searchLoading = Vue.ref(false);
+    const searchGroups = Vue.computed(() => {
+      if (!searchRaw.value || !searchRaw.value.groups) return [];
+      let idx = results.value.length;
+      return searchRaw.value.groups.map((g) => ({
+        module: g.module,
+        label: g.label,
+        route: g.route,
+        items: g.items.slice(0, 5).map((it) => ({ ...it, idx: idx++ })),
+      }));
+    });
+    const totalItems = Vue.computed(() => {
+      const s = searchGroups.value.reduce((acc, g) => acc + g.items.length, 0);
+      return results.value.length + s;
+    });
+    function navigate(route) {
+      if (route && window.htdRouter) window.htdRouter.navigate(route);
+      close();
+    }
+    function runSearch(it) {
+      if (it && it.route) navigate(it.route);
+      else close();
+    }
+    function activate() {
+      const c = activeIndex.value;
+      if (c < results.value.length) { run(results.value[c]); return; }
+      const flat = [];
+      searchGroups.value.forEach((g) => g.items.forEach((it) => flat.push(it)));
+      const s = flat.find((x) => x.idx === c);
+      if (s) runSearch(s);
+    }
+    let searchTimer = null;
+    Vue.watch(query, (q) => {
+      if (searchTimer) clearTimeout(searchTimer);
+      const t = (q || '').trim();
+      if (!t) { searchRaw.value = null; searchTotal.value = 0; searchLoading.value = false; return; }
+      searchLoading.value = true;
+      searchTimer = setTimeout(async () => {
+        try {
+          const r = await window.htdApi.get('/search', { q: t });
+          searchRaw.value = r && r.groups ? r : { groups: [], total: 0 };
+          searchTotal.value = (r && r.total) || 0;
+        } catch (e) {
+          searchRaw.value = { groups: [], total: 0 };
+        } finally {
+          searchLoading.value = false;
+        }
+      }, 250);
+    });
+
     function open() {
       visible.value = true;
       query.value = '';
       activeIndex.value = 0;
+      searchRaw.value = null;
+      searchTotal.value = 0;
+      searchLoading.value = false;
       Vue.nextTick(() => { if (inputEl.value) inputEl.value.focus(); });
     }
     function close() {
@@ -130,14 +181,13 @@ const HtpCommandPalette = {
       if (!visible.value) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        activeIndex.value = Math.min(activeIndex.value + 1, results.value.length - 1);
+        activeIndex.value = Math.min(activeIndex.value + 1, totalItems.value - 1);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         activeIndex.value = Math.max(activeIndex.value - 1, 0);
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        const c = results.value[activeIndex.value];
-        if (c) run(c);
+        activate();
       } else if (e.key === 'Escape') {
         e.preventDefault();
         close();
@@ -152,7 +202,8 @@ const HtpCommandPalette = {
     Vue.onMounted(() => document.addEventListener('keydown', onKeydown));
     Vue.onUnmounted(() => document.removeEventListener('keydown', onKeydown));
 
-    return { visible, query, activeIndex, results, isReduced, inputEl, open, close, toggle, run, onKeydown };
+    return { visible, query, activeIndex, results, isReduced, inputEl, open, close, toggle, run, onKeydown,
+      searchIconSvg, searchRaw, searchTotal, searchLoading, searchGroups, totalItems, navigate, runSearch, activate };
   },
   template: `
     <teleport to="body">
@@ -185,7 +236,35 @@ const HtpCommandPalette = {
               <span class="cmd-palette__label">{{ cmd.label }}</span>
               <span class="cmd-palette__type">{{ cmd.typeLabel }}</span>
             </li>
-            <li v-if="results.length === 0" class="cmd-palette__empty">无匹配命令</li>
+            <li v-if="searchLoading" class="cmd-palette__empty">搜索中…</li>
+            <template v-for="g in searchGroups" :key="g.module">
+              <li class="cmd-palette__group-head">
+                <span class="cmd-palette__group-icon" v-html="searchIconSvg"></span>
+                <span class="cmd-palette__group-label">{{ g.label }}</span>
+                <span v-if="g.route" class="cmd-palette__viewall" @click="navigate(g.route)">查看全部</span>
+              </li>
+              <li
+                v-for="it in g.items"
+                :key="g.module + '-' + it.id"
+                class="cmd-palette__item cmd-palette__item--search"
+                :class="{ 'cmd-palette__item--active': it.idx === activeIndex }"
+                role="option"
+                :aria-selected="it.idx === activeIndex"
+                @mouseenter="activeIndex = it.idx"
+                @click="runSearch(it)"
+              >
+                <span class="cmd-palette__index cmd-palette__index--blank"></span>
+                <span class="cmd-palette__icon cmd-palette__icon--search">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                </span>
+                <span class="cmd-palette__label">
+                  <span class="cmd-palette__title">{{ it.title }}</span>
+                  <span v-if="it.snippet" class="cmd-palette__snippet">{{ it.snippet }}</span>
+                </span>
+                <span class="cmd-palette__type">搜索</span>
+              </li>
+            </template>
+            <li v-if="results.length === 0 && !searchLoading && totalItems === 0" class="cmd-palette__empty">无匹配命令</li>
           </ul>
           <div class="cmd-palette__footer">
             <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>

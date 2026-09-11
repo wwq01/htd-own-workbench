@@ -18,6 +18,32 @@ const StudyPage = {
     const dataStore = useDataStore();
     const activeTab = Vue.ref('record');
 
+    // ============ 学习统计图表（V1.5 §8.1） ============
+    const C = window.htdCharts;
+    const charts = Vue.ref(null);
+    async function loadCharts() {
+      try {
+        charts.value = await dataStore.fetchCharts();
+      } catch (e) { console.error(e); }
+    }
+    const chartPeriod = Vue.ref('monthly');
+    function setChartPeriod(p) { chartPeriod.value = p; }
+    const studyPeriodSvg = Vue.computed(() => {
+      if (!charts.value || !charts.value.study) return '';
+      const map = { daily: charts.value.study.daily, weekly: charts.value.study.weekly, monthly: charts.value.study.monthly };
+      const data = map[chartPeriod.value] || [];
+      return C.barChart({ data, height: 170, color: 'var(--chart-series-2)' });
+    });
+    const studyStackedSvg = Vue.computed(() => {
+      if (!charts.value || !charts.value.study) return '';
+      const ds = charts.value.study.directionStacked;
+      return C.stackedBarChart({ data: ds.data, series: ds.series, height: 220 });
+    });
+    const studyStackedLegend = Vue.computed(() => {
+      if (!charts.value || !charts.value.study) return '';
+      return C.legend(charts.value.study.directionStacked.series.map(function (s) { return { label: s.label, color: s.color }; }));
+    });
+
     // ============ 学习时长统计 ============
     const weekHours = Vue.ref(0);
     const monthHours = Vue.ref(0);
@@ -247,6 +273,7 @@ const StudyPage = {
     Vue.onMounted(() => {
       loadStats();
       loadRecords();
+      loadCharts();
     });
 
     return {
@@ -271,10 +298,32 @@ const StudyPage = {
       openCompleteModal, submitCompleteForm,
       // 选项
       STUDY_TYPE_OPTIONS, STUDY_TYPE_FORM_OPTIONS,
+      // 学习统计图表
+      charts, chartPeriod, setChartPeriod, studyPeriodSvg, studyStackedSvg, studyStackedLegend,
     };
   },
   template: `
     <div class="list-page">
+      <!-- ===== 学习统计图表（V1.5 §8.1） ===== -->
+      <div v-if="charts && charts.study" class="stats-grid" style="grid-template-columns: 1fr; gap: var(--spacing-lg);">
+        <div class="stat-card" style="padding: var(--spacing-lg);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="font-weight: 600;">学习时长趋势</div>
+            <div style="display: flex; gap: 8px;">
+              <button class="htp-btn htp-btn--sm" :class="{ 'htp-btn--primary': chartPeriod === 'daily' }" @click="setChartPeriod('daily')">日</button>
+              <button class="htp-btn htp-btn--sm" :class="{ 'htp-btn--primary': chartPeriod === 'weekly' }" @click="setChartPeriod('weekly')">周</button>
+              <button class="htp-btn htp-btn--sm" :class="{ 'htp-btn--primary': chartPeriod === 'monthly' }" @click="setChartPeriod('monthly')">月</button>
+            </div>
+          </div>
+          <div v-html="studyPeriodSvg"></div>
+        </div>
+        <div class="stat-card" style="padding: var(--spacing-lg);">
+          <div style="font-weight: 600; margin-bottom: 12px;">按技术方向堆叠</div>
+          <div v-html="studyStackedSvg"></div>
+          <div v-html="studyStackedLegend" style="margin-top: 8px;"></div>
+        </div>
+      </div>
+
       <!-- 标签切换 -->
       <div class="htp-tabs">
         <button class="htp-tab" :class="{ 'htp-tab--active': activeTab === 'record' }" @click="switchTab('record')">学习记录</button>
@@ -349,7 +398,7 @@ const StudyPage = {
                 <htp-tag :type="p.completed ? 'success' : 'warning'">{{ p.completed ? '已学习' : '待学习' }}</htp-tag>
               </div>
               <div style="display: flex; gap: 8px;">
-                <button v-if="!p.completed" class="htp-btn htp-btn--primary htp-btn--sm" @click="openCompleteModal(p)">✓ 标记已学习</button>
+                <button v-if="!p.completed" class="htp-btn htp-btn--primary htp-btn--sm" @click="openCompleteModal(p)"><span v-html="htdIcon('check')"></span> 标记已学习</button>
                 <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="openEditPending(p)">编辑</button>
                 <button class="htp-btn htp-btn--danger htp-btn--sm" @click="requestDeletePending(p)">删除</button>
               </div>

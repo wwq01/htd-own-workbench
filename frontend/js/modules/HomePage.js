@@ -3,7 +3,7 @@
  * 说明：模板中不使用可选链 (?.) 语法、不直接调用 htdDate 全局对象，
  *       而是通过 setup 返回的封装函数，兼容 Vue 3 无构建运行时模板编译器
  *
- * 三栏：💼 工作组 / 🌱 生活组 / 📚 知识组
+ * 三栏： 工作组 /  生活组 /  知识组
  * 数据来自 dataStore.homeSummary（后端 /system/home-summary 一次聚合）
  */
 const HomePage = {
@@ -79,10 +79,50 @@ const HomePage = {
       return h && h.current >= h.target;
     }
 
+    // ===== V1.5 图表聚合（首页 4 卡） =====
+    const charts = Vue.ref(null);
+    async function loadCharts() {
+      try {
+        charts.value = await dataStore.fetchCharts();
+      } catch (e) {
+        console.error('加载图表失败:', e);
+      }
+    }
+    Vue.onMounted(loadCharts);
+
+    const C = window.htdCharts;
+    const weekTrendSvg = Vue.computed(() => {
+      if (!charts.value) return '';
+      const data = charts.value.home.weekCompletionTrend.map((d) => ({ label: d.label, value: d.completed }));
+      return C.barChart({ data, height: 150, showValue: false });
+    });
+    const phaseSvg = Vue.computed(() => {
+      if (!charts.value) return '';
+      const dist = charts.value.home.projectPhaseDistribution;
+      const total = dist.reduce((s, d) => s + (d.value || 0), 0);
+      return C.donutChart({ data: dist, width: 170, height: 170, centerText: String(total) });
+    });
+    const phaseLegend = Vue.computed(() => {
+      if (!charts.value) return '';
+      return C.legend(charts.value.home.projectPhaseDistribution.map((d) => ({ label: d.label, color: d.color })));
+    });
+    const studySvg = Vue.computed(() => {
+      if (!charts.value) return '';
+      const data = charts.value.home.studyHours.map((d) => ({ label: d.label, value: d.value }));
+      return C.barChart({ data, height: 150, color: '#22D3EE' });
+    });
+    const habitSvg = Vue.computed(() => {
+      if (!charts.value) return '';
+      const data = charts.value.home.habitCompletionRate.map((d) => ({ label: d.label, value: d.value }));
+      return C.barChart({ data, height: 150, color: 'var(--chart-series-3)' });
+    });
+
     return {
       appStore, dataStore,
       todayStr, weekday, greeting,
       home,
+      charts,
+      weekTrendSvg, phaseSvg, phaseLegend, studySvg, habitSvg,
       fmtDate, relativeTime, formatMoney,
       goTodo, goProject, goMeeting, goSecret, goStudy, goReview, goVault, goHabit, goTimeBlock, goFinance,
       goMeetingDetail, goProjectDetail,
@@ -108,10 +148,10 @@ const HomePage = {
 
       <!-- 三栏主体 -->
       <div v-else class="home-three-col">
-        <!-- ===== 左栏：💼 工作组 ===== -->
+        <!-- ===== 左栏： 工作组 ===== -->
         <div class="home-col home-col--work">
           <div class="home-col__head">
-            <span class="home-col__icon">💼</span>
+            <span class="home-col__icon" v-html="htdIcon('building',{size:20})"></span>
             <span class="home-col__title">工作组</span>
           </div>
 
@@ -187,10 +227,10 @@ const HomePage = {
           </div>
         </div>
 
-        <!-- ===== 中栏：🌱 生活组 ===== -->
+        <!-- ===== 中栏： 生活组 ===== -->
         <div class="home-col home-col--life">
           <div class="home-col__head">
-            <span class="home-col__icon">🌱</span>
+            <span class="home-col__icon" v-html="htdIcon('leaf',{size:20})"></span>
             <span class="home-col__title">生活组</span>
           </div>
 
@@ -200,7 +240,7 @@ const HomePage = {
               <span>今日待打卡</span>
               <button class="home-card__viewall" @click.stop="goHabit">查看全部</button>
             </div>
-            <div v-if="home.life.todayHabits.length === 0" class="home-card__empty">今日习惯已全部达标 🎉</div>
+            <div v-if="home.life.todayHabits.length === 0" class="home-card__empty">今日习惯已全部达标</div>
             <div v-else class="home-card__body">
               <div v-for="h in home.life.todayHabits" :key="h.id" class="home-card__row">
                 <div class="home-card__row-main">
@@ -249,10 +289,10 @@ const HomePage = {
           </div>
         </div>
 
-        <!-- ===== 右栏：📚 知识组 ===== -->
+        <!-- ===== 右栏：知识组 ===== -->
         <div class="home-col home-col--knowledge">
           <div class="home-col__head">
-            <span class="home-col__icon">📚</span>
+            <span class="home-col__icon" v-html="htdIcon('book',{size:20})"></span>
             <span class="home-col__title">知识组</span>
           </div>
 
@@ -305,6 +345,29 @@ const HomePage = {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 数据看板：V1.5 §8.1 首页统计图表 -->
+      <div v-if="charts && charts.home" class="home-charts" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--spacing-lg);margin-top:var(--spacing-lg);">
+        <div class="home-card">
+          <div class="home-card__title">本周完成趋势</div>
+          <div class="home-chart" v-html="weekTrendSvg"></div>
+        </div>
+        <div class="home-card">
+          <div class="home-card__title">项目阶段分布</div>
+          <div style="display:flex;gap:var(--spacing-lg);align-items:center;flex-wrap:wrap;">
+            <div class="home-chart" v-html="phaseSvg"></div>
+            <div v-html="phaseLegend"></div>
+          </div>
+        </div>
+        <div class="home-card">
+          <div class="home-card__title">学习时长趋势（小时）</div>
+          <div class="home-chart" v-html="studySvg"></div>
+        </div>
+        <div class="home-card">
+          <div class="home-card__title">习惯完成率（%）</div>
+          <div class="home-chart" v-html="habitSvg"></div>
         </div>
       </div>
     </div>

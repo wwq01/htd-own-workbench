@@ -397,7 +397,7 @@ const DevelopPage = {
                 <span v-if="s.remark" style="font-size: 12px; color: var(--text-tertiary);">{{ s.remark }}</span>
               </div>
               <div style="display: flex; gap: 8px;">
-                <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="copySnippetCode(s)">📋 复制</button>
+                <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="copySnippetCode(s)"><span v-html="htdIcon('clipboard')"></span> 复制</button>
                 <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="openEditSnippet(s)">编辑</button>
                 <button class="htp-btn htp-btn--danger htp-btn--sm" @click="requestDeleteSnippet(s)">删除</button>
               </div>

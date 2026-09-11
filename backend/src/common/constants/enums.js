@@ -202,6 +202,7 @@ export const VAULT_SOURCE_TYPE = {
   MEETING_REVIEW: 'MEETING_REVIEW',
   CREDENTIAL_NOTE: 'CREDENTIAL_NOTE',
   DEPLOY_NOTE: 'DEPLOY_NOTE',
+  READING_NOTE: 'READING_NOTE',
 };
 
 // ===== 项目阶段合法迁移（6 阶段，中文值对齐现有 PROJECT_PHASE）=====
@@ -299,4 +300,38 @@ export const EMERGENCY_STATUS_TRANSITIONS = {
   contained: ['resolved', 'closed'],
   resolved: ['closed'],
   closed: [],
+};
+
+// ============================================================
+// V1.5 阅读 / 资料模块枚举
+// ============================================================
+
+// ===== 阅读资料类型 =====
+export const READING_TYPE = {
+  ARTICLE: '文章',
+  WECHAT: '公众号',
+  CVE: 'CVE',
+  PAPER: '论文',
+};
+
+// ===== 阅读状态 4 态 =====
+export const READING_STATUS = {
+  UNREAD: 'unread',
+  READING: 'reading',
+  PRECIPITATED: 'precipitated',
+  ARCHIVED: 'archived',
+};
+
+// 阅读 4 态合法迁移（状态机约束，非法迁移抛 PARAM_ERROR）
+export const READING_STATUS_TRANSITIONS = {
+  unread: ['reading', 'archived'],
+  reading: ['precipitated', 'archived', 'unread'],
+  precipitated: ['archived', 'reading'],
+  archived: ['unread'],
+};
+
+// ===== 自定义扩展字段类型（系统设置可配置，V1.5）=====
+export const CUSTOM_FIELD_TYPE = {
+  SINGLE_LINE: 'single_line',
+  MULTI_LINE: 'multi_line',
 };

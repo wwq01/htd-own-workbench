@@ -249,8 +249,8 @@ const HtpSelect = {
               class="htp-select__check"\
               width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"\
             >\
-              <rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="#3D6EFF" fill-opacity="0.15" stroke="#3D6EFF" stroke-width="1.5"/>\
-              <path d="M7 12l3 3 7-7" stroke="#3D6EFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
+              <rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="var(--color-primary)" fill-opacity="0.15" stroke="var(--color-primary)" stroke-width="1.5"/>\
+              <path d="M7 12l3 3 7-7" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>\
             </svg>\
             <span class="htp-select__opt-label">{{ opt.label }}</span>\
           </li>\

@@ -13,13 +13,17 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { today, tomorrow } from '../../common/utils/date.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { parseFieldsParam, pickFields } from '../../lib/fieldSelector.js';
 import { TODO_STATUS, TODO_STATUS_TRANSITIONS } from '../../common/constants/enums.js';
+import { ensureFieldConfigCache } from '../system/fieldConfig.service.js';
 
 class TodoService {
   /**
    * 新增待办
    */
   async create(payload) {
+    // 先装载 §8.3 配置缓存，保证 schema 里配置驱动的下拉校验读到最新值
+    await ensureFieldConfigCache();
     const data = createTodoSchema.parse(payload);
     return todoRepository.create({
       title: data.title,
@@ -37,6 +41,7 @@ class TodoService {
    * 编辑待办（部分字段更新）
    */
   async update(payload) {
+    await ensureFieldConfigCache();
     const parsed = updateTodoSchema.parse(payload);
     const { id, ...fields } = parsed;
     const exists = await todoRepository.findById(id);
@@ -98,10 +103,10 @@ class TodoService {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '待办不存在');
     }
     const nextStatus = exists.status === 'completed' ? 'pending' : 'completed';
-    const updateData = { status: nextStatus };
-    if (nextStatus === 'completed') updateData.completedAt = new Date();
-    else updateData.completedAt = null;
-    return todoRepository.updateById(id, updateData);
+    // S1-3：委托 changeStatus，统一走 5 态状态机校验。
+    // 原实现直接算下一态并写库，绕过状态机，会放行 cancelled → completed 等非法迁移；
+    // 且遗漏 delayedUntil 清理。委托后一并修正。
+    return this.changeStatus(id, nextStatus);
   }
 
   /**
@@ -157,27 +162,35 @@ class TodoService {
    * 列表查询（支持按单日期 或 日期范围）
    */
   async list(query = {}) {
+    await ensureFieldConfigCache();
     const q = listTodoSchema.parse(query);
+    const fields = parseFieldsParam(q.fields);
+    // 注意：repository 返回 Promise，必须先 await 再裁剪，
+    // 否则 pickFields 遇到非数组会原样返回，导致裁剪静默失效。
+    const pick = async (rowsPromise) => {
+      const rows = await rowsPromise;
+      return fields ? pickFields(rows, fields) : rows;
+    };
     if (q.todoDate) {
-      return todoRepository.listByDate(q.todoDate, {
+      return pick(todoRepository.listByDate(q.todoDate, {
         category: q.category,
         status: q.status,
         priority: q.priority,
-      });
+      }));
     }
     if (q.startDate && q.endDate) {
-      return todoRepository.listByDateRange(q.startDate, q.endDate, {
+      return pick(todoRepository.listByDateRange(q.startDate, q.endDate, {
         category: q.category,
         status: q.status,
         priority: q.priority,
-      });
+      }));
     }
     // 默认：今日列表
-    return todoRepository.listByDate(today(), {
+    return pick(todoRepository.listByDate(today(), {
       category: q.category,
       status: q.status,
       priority: q.priority,
-    });
+    }));
   }
 
   /**

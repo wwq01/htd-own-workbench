@@ -1,6 +1,6 @@
 /**
  * HtpTag - 状态标签组件
- * 支持：default、primary、success、warning、danger、info、purple、orange、cyan
+ * 支持：default、primary、success、warning、danger、info、poc、orange、cyan
  */
 const HtpTag = {
   name: 'HtpTag',

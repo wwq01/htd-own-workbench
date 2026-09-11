@@ -247,7 +247,7 @@
   padding: 9px 14px;
   font-size: var(--font-size-base);
   color: var(--text-primary);
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--surface-input);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   outline: none;
@@ -276,7 +276,7 @@
   padding: 9px 14px;
   font-size: var(--font-size-base);
   color: var(--text-primary);
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--surface-input);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   outline: none;
@@ -524,9 +524,9 @@
 
 /* 紫色 */
 .htp-tag--purple {
-  background-color: rgba(139, 92, 246, 0.18);
-  color: #A78BFA;
-  border-color: rgba(139, 92, 246, 0.30);
+  background-color: rgba(132, 204, 22, 0.18);
+  color: var(--tag-poc);
+  border-color: rgba(132, 204, 22, 0.30);
 }
 
 /* 橙色 */
@@ -821,6 +821,52 @@ html[data-theme="light"] .htp-input[type="date"] {
   padding: 24px;
   text-align: center;
   color: var(--text-tertiary);
+}
+.cmd-palette__group {
+  padding: 14px 14px 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+.cmd-palette__group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 4px;
+}
+.cmd-palette__group-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.cmd-palette__viewall {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+.cmd-palette__viewall:hover {
+  background-color: rgba(91, 141, 239, 0.12);
+}
+.cmd-palette__item--search .cmd-palette__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.cmd-palette__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmd-palette__snippet {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .cmd-palette__footer {
   display: flex;

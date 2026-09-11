@@ -259,7 +259,7 @@ const ReviewPage = {
         </div>
         <div v-if="activeTab === 'week'" class="review-topbar__actions">
           <button class="htp-btn htp-btn--primary htp-btn--sm" :disabled="generating" @click="generateCurrentWeek">
-            {{ generating ? '生成中...' : '✨ 一键生成本周周复盘' }}
+            {{ generating ? '生成中...' : '一键生成本周周复盘' }}
           </button>
         </div>
       </div>

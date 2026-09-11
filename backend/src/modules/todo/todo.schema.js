@@ -3,16 +3,19 @@
  */
 import { z } from 'zod';
 import { TODO_CATEGORY, TODO_PRIORITY, TODO_STATUS } from '../../common/constants/enums.js';
+import { dropdownValue } from '../../lib/configSchema.js';
 
-const CATEGORY_VALUES = Object.values(TODO_CATEGORY);
 const PRIORITY_VALUES = Object.values(TODO_PRIORITY);
 const STATUS_VALUES = Object.values(TODO_STATUS);
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+// 待办分类取自「字段 / 状态机配置平台」（§8.3），未配置时回落默认枚举
+const categoryValue = () => dropdownValue('todo.category', '非法的待办分类');
+
 export const createTodoSchema = z.object({
   title: z.string().min(1, '标题不能为空').max(200, '标题长度不能超过 200 字符'),
-  category: z.enum(CATEGORY_VALUES).default(TODO_CATEGORY.DAILY),
+  category: categoryValue().default(TODO_CATEGORY.DAILY),
   priority: z.enum(PRIORITY_VALUES).default(TODO_PRIORITY.MEDIUM),
   todoDate: z.string().regex(DATE_REGEX, '日期格式必须为 YYYY-MM-DD'),
   status: z.enum(STATUS_VALUES).default(TODO_STATUS.NOT_STARTED),
@@ -24,7 +27,7 @@ export const createTodoSchema = z.object({
 export const updateTodoSchema = z.object({
   id: z.string().min(1, 'ID 不能为空'),
   title: z.string().min(1, '标题不能为空').max(200, '标题长度不能超过 200 字符').optional(),
-  category: z.enum(CATEGORY_VALUES).optional(),
+  category: categoryValue().optional(),
   priority: z.enum(PRIORITY_VALUES).optional(),
   status: z.enum(STATUS_VALUES).optional(),
   todoDate: z.string().regex(DATE_REGEX, '日期格式必须为 YYYY-MM-DD').optional(),
@@ -38,11 +41,12 @@ export const listTodoSchema = z.object({
   todoDate: z.string().regex(DATE_REGEX, '日期格式必须为 YYYY-MM-DD').optional(),
   startDate: z.string().regex(DATE_REGEX).optional(),
   endDate: z.string().regex(DATE_REGEX).optional(),
-  category: z.enum(CATEGORY_VALUES).optional(),
+  category: categoryValue().optional(),
   status: z.enum(STATUS_VALUES).optional(),
   priority: z.enum(PRIORITY_VALUES).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().positive().optional(),
+  fields: z.string().optional(), // V1.5 ?fields 字段裁剪
 });
 
 export const migratePendingSchema = z.object({

@@ -121,27 +121,11 @@ function renderRoute() {
  * 初始化路由
  */
 function initRouter() {
-  // 注册所有路由
-  registerRoute('/', { title: '首页总览', module: 'home' });
-  registerRoute('/todo', { title: '今日工作 / 明日计划', module: 'todo' });
-  registerRoute('/project', { title: '项目管理', module: 'project' });
-  registerRoute('/develop', { title: '开发工作', module: 'develop' });
-  registerRoute('/entertainment', { title: '游戏娱乐', module: 'entertainment' });
-  registerRoute('/study', { title: '充电学习', module: 'study' });
-  registerRoute('/review', { title: '复盘与沉淀', module: 'review' });
-  registerRoute('/secret', { title: '轻量凭据保险箱', module: 'secret' });
-  registerRoute('/data', { title: '数据与部署', module: 'data' });
-  registerRoute('/settings', { title: '系统设置', module: 'settings' });
-  registerRoute('/meeting', { title: '会议纪要', module: 'meeting' });
-  registerRoute('/habit', { title: '习惯打卡', module: 'habit' });
-  registerRoute('/time-block', { title: '时间块/番茄钟', module: 'time-block' });
-  registerRoute('/finance', { title: '财务速记', module: 'finance' });
-  registerRoute('/vault', { title: '沉淀 Vault', module: 'vault' });
-  registerRoute('/system/recycle-bin', { title: '回收站', module: 'recycle-bin' });
-  registerRoute('/poc', { title: 'POC 跟踪', module: 'poc' });
-  registerRoute('/bid', { title: '投标档案', module: 'bid' });
-  registerRoute('/vuln', { title: '漏洞跟踪库', module: 'vuln' });
-  registerRoute('/incident', { title: '应急响应记录', module: 'incident' });
+  // 注册所有路由（S1：由 registry.js 单一数据源派生，新增模块无需改动本文件）
+  const meta = (window.htdRegistry && window.htdRegistry.MODULE_META) || [];
+  meta.forEach((m) => {
+    registerRoute(m.path, { title: m.title, module: m.key });
+  });
 
   // 监听 hash 变化
   window.addEventListener('hashchange', renderRoute);

@@ -16,7 +16,7 @@
       "accentDanger": "#EF4444",
       "success": "#10B981",
       "warning": "#F59E0B",
-      "info": "#6366F1"
+      "info": "#3B82F6"
     },
     "borderRadius": { "sm": 4, "md": 6, "lg": 8, "xl": 12 },
     "shadows": {
@@ -47,7 +47,7 @@
       "accentDanger": "#DC2626",
       "success": "#059669",
       "warning": "#D97706",
-      "info": "#4F46E5"
+      "info": "#3B82F6"
     },
     "borderRadius": { "sm": 4, "md": 6, "lg": 8, "xl": 12 },
     "shadows": {

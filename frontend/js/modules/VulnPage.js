@@ -41,13 +41,37 @@ const VulnPage = {
     const newGroupInput = Vue.ref('');
     const knownGroups = Vue.ref([]);
 
-    function loadGroups() {
+    /**
+     * S1-5：资产分组改为服务端持久化（SystemSetting），localStorage 降级为离线兜底。
+     * 原实现只存 localStorage，清缓存/换浏览器即丢失，违反数据自主。
+     * 读取优先 API，失败时回退本地兜底，保证离线可用。
+     */
+    async function loadGroups() {
+      try {
+        const arr = await window.htdApi.get('/vuln/asset-groups');
+        if (Array.isArray(arr) && arr.length) {
+          knownGroups.value = arr;
+          currentGroup.value = arr[0];
+          try { localStorage.setItem(VULN_GROUPS_KEY, JSON.stringify(arr)); } catch (e) { /* ignore */ }
+          return;
+        }
+        if (Array.isArray(arr)) { knownGroups.value = []; return; }
+      } catch (e) {
+        console.error('读取资产分组失败，回退本地缓存:', e);
+      }
       try { knownGroups.value = JSON.parse(localStorage.getItem(VULN_GROUPS_KEY) || '[]'); }
       catch (e) { knownGroups.value = []; }
       if (knownGroups.value.length) currentGroup.value = knownGroups.value[0];
     }
-    function persistGroups() {
+    async function persistGroups() {
+      // 先写本地保证即时反馈与离线可用，再同步到服务端
       try { localStorage.setItem(VULN_GROUPS_KEY, JSON.stringify(knownGroups.value)); } catch (e) { /* ignore */ }
+      try {
+        const saved = await window.htdApi.put('/vuln/asset-groups', knownGroups.value);
+        if (Array.isArray(saved)) knownGroups.value = saved;
+      } catch (e) {
+        console.error('资产分组保存失败（已暂存本地）:', e);
+      }
     }
     const groupOptions = Vue.computed(() => knownGroups.value.map((g) => ({ label: g, value: g })));
     const hasGroup = Vue.computed(() => currentGroup.value !== '');
@@ -80,7 +104,8 @@ const VulnPage = {
     }
 
     Vue.watch(currentGroup, loadList);
-    Vue.onMounted(() => { loadGroups(); loadList(); });
+    // S1-5：loadGroups 改为异步（读服务端），须 await 后再 loadList，否则 currentGroup 尚未就绪
+    Vue.onMounted(async () => { await loadGroups(); loadList(); });
 
     // ============ 新增 / 编辑 ============
     const formModalVisible = Vue.ref(false);

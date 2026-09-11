@@ -145,11 +145,19 @@ const EntertainmentPage = {
     }
     function starsHtml(rating) {
       const r = parseInt(rating, 10) || 0;
-      return '★'.repeat(r) + '☆'.repeat(5 - r);
+      let s = '';
+      for (let i = 0; i < 5; i++) {
+        const on = i < r;
+        const c = on ? 'var(--color-warning)' : 'var(--text-tertiary)';
+        s += `<svg class="ent-star-svg" width="14" height="14" viewBox="0 0 24 24" fill="${on ? c : 'none'}" stroke="${c}" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+      }
+      return s;
     }
     function setRating(v) {
       form.rating = v;
     }
+
+    const starSvg = window.htdIcon('star', { size: 18 });
 
     return {
       list, loading,
@@ -248,7 +256,7 @@ const EntertainmentPage = {
           <div class="form-grid--full">
             <label class="form-label">评分（点击星星）</label>
             <div class="ent-rating-picker">
-              <span v-for="n in 5" :key="n" class="ent-star" :class="{ 'ent-star--on': n <= form.rating }" @click="setRating(n)">★</span>
+              <span v-for="n in 5" :key="n" class="ent-star" :class="{ 'ent-star--on': n <= form.rating }" @click="setRating(n)" v-html="starSvg"></span>
               <span class="text-tertiary ml-sm">{{ form.rating }} / 5</span>
             </div>
           </div>

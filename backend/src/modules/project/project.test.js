@@ -75,6 +75,16 @@ describe('Project Service 集成测试', () => {
     expect(list.some(p => p.customerName === `${PREFIX}筛选B`)).toBe(false);
   });
 
+  it('list ?fields 裁剪仅返回指定字段（V1.5）', async () => {
+    await projectService.create({ customerName: `${PREFIX}裁剪`, phase: '需求沟通', background: '长背景文本' });
+    const list = await projectService.list({ fields: 'id,customerName' });
+    const hit = list.find(p => p.customerName === `${PREFIX}裁剪`);
+    expect(hit).toBeTruthy();
+    expect(hit.id).toBeTruthy();
+    expect(hit.background).toBeUndefined();
+    expect(hit.phase).toBeUndefined();
+  });
+
   it('应支持软删除（含关联级联）', async () => {
     const p = await projectService.create({ customerName: `${PREFIX}删除测试` });
     await projectService.delete(p.id);

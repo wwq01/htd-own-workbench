@@ -437,7 +437,7 @@ const MeetingPage = {
                 <htp-tag v-if="a.owner" type="info" class="ml-sm">{{ a.owner }}</htp-tag>
                 <htp-tag v-if="a.due" type="default" class="ml-sm">截止 {{ a.due }}</htp-tag>
                 <htp-tag v-if="a.done" type="success" class="ml-sm">已完成</htp-tag>
-                <button class="htp-btn htp-btn--primary htp-btn--sm ml-auto" @click="addActionToToday(a)">➕今日</button>
+                <button class="htp-btn htp-btn--primary htp-btn--sm ml-auto" @click="addActionToToday(a)"><span v-html="htdIcon('plus')"></span> 今日</button>
               </li>
             </ul>
             <div v-else class="text-sm text-tertiary">暂无行动项</div>

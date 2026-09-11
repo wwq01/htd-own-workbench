@@ -12,7 +12,7 @@ const useAppStore = Pinia.defineStore('app', {
     // 全局快速备忘输入值
     memoInput: '',
     // 版本号
-    version: '1.4.0',
+    version: '1.5.0',
     // 总数据条目数（侧边栏底部展示）
     totalDataCount: 0,
     settings: {

@@ -570,7 +570,7 @@ const DataPage = {
           </div>
 
           <div v-if="backupStatus && backupStatus.autoPaused" class="backup-autopause">
-            ⚠ 自动备份已连续失败 3 次并暂停。多为磁盘空间不足 / 文件权限 / 杀软锁定 SQLite 所致，请排查后手动创建一次备份即可恢复自动策略。
+            自动备份已连续失败 3 次并暂停。多为磁盘空间不足 / 文件权限 / 杀软锁定 SQLite 所致，请排查后手动创建一次备份即可恢复自动策略。
           </div>
 
           <div v-if="backupLoading" class="text-tertiary">正在读取备份列表...</div>

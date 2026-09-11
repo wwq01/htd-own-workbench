@@ -27,6 +27,10 @@ router.delete('/backups/:fileName', systemController.removeBackup);
 router.get('/settings', systemController.getSettings);
 router.put('/settings', systemController.updateSettings);
 
+// 字段 / 状态机配置平台（V1.5 §8.3）
+router.get('/field-config', systemController.getFieldConfig);
+router.put('/field-config', systemController.updateFieldConfig);
+
 // 回收站（V1.3）
 router.get('/recycle-bin', systemController.getRecycleBin);
 router.post('/recycle-bin/restore', systemController.restoreRecycleBinItem);
@@ -36,5 +40,9 @@ router.delete('/recycle-bin/empty', systemController.emptyRecycleBin);
 // 首页三栏数据聚合（V1.3）
 router.get('/home-summary', systemController.getHomeSummary);
 router.post('/home-recommend', systemController.autoRecommendVault);
+
+// 图表聚合数据（V1.5 §8.1）
+router.get('/charts', systemController.getCharts);
+router.get('/project-charts', systemController.getProjectCharts);
 
 export default router;

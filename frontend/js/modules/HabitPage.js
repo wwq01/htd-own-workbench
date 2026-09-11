@@ -224,7 +224,7 @@ const HabitPage = {
         <div v-else class="habit-grid">
           <div v-for="habit in habits" :key="habit.id" class="habit-card">
             <div class="habit-card__head">
-              <span class="habit-card__icon">{{ habit.icon || '📌' }}</span>
+              <span class="habit-card__icon" v-html="habit.icon || htdIcon('bookmark')"></span>
               <div class="habit-card__title-wrap">
                 <div class="habit-card__title">{{ habit.name }}</div>
                 <div class="habit-card__meta text-sm text-tertiary">

@@ -5,6 +5,7 @@ import systemService from './system.service.js';
 import dataService from './data.service.js';
 import backupService from './backup.service.js';
 import settingsService from './settings.service.js';
+import fieldConfigService from './fieldConfig.service.js';
 
 class SystemController {
   /**
@@ -150,6 +151,30 @@ class SystemController {
   }
 
   /**
+   * 字段 / 状态机配置平台 - 读取
+   * GET /api/v1/system/field-config
+   */
+  async getFieldConfig(req, res, next) {
+    try {
+      res.success(await fieldConfigService.getConfig());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 字段 / 状态机配置平台 - 保存
+   * PUT /api/v1/system/field-config
+   */
+  async updateFieldConfig(req, res, next) {
+    try {
+      res.success(await fieldConfigService.updateConfig(req.body));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
    * 回收站列表
    * GET /api/v1/system/recycle-bin
    */
@@ -217,6 +242,30 @@ class SystemController {
   async autoRecommendVault(req, res, next) {
     try {
       res.success(await systemService.autoRecommendVault(req.body || {}));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 图表聚合数据（V1.5 §8.1）
+   * GET /api/v1/system/charts
+   */
+  async getCharts(req, res, next) {
+    try {
+      res.success(await systemService.getCharts());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 项目详情图表（V1.5 §8.1）：里程碑时间线 + 任务速率
+   * GET /api/v1/system/project-charts?projectId=xxx
+   */
+  async getProjectCharts(req, res, next) {
+    try {
+      res.success(await systemService.getProjectCharts(req.query.projectId));
     } catch (err) {
       next(err);
     }

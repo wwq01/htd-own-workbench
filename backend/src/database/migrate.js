@@ -173,6 +173,12 @@ const TABLE_DDL = [
     "updatedAt" BIGINT,
     "deletedAt" BIGINT
   );`,
+  `CREATE TABLE IF NOT EXISTS "system_settings" (
+    "id" TEXT PRIMARY KEY,
+    "key" TEXT UNIQUE NOT NULL,
+    "value" TEXT DEFAULT '{}',
+    "updatedAt" BIGINT
+  );`,
 ];
 
 // 老表新增列（缺失才加）

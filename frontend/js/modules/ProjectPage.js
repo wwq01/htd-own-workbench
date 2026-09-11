@@ -40,6 +40,7 @@ const ProjectPage = {
   name: 'ProjectPage',
   setup() {
     const dataStore = useDataStore();
+    const C = window.htdCharts;
 
     // ============ 列表 & 筛选 ============
     const projectList = Vue.ref([]);
@@ -66,7 +67,26 @@ const ProjectPage = {
       }
     }
     Vue.watch([filterPhase, filterPriority, filterDomain, filterKeyword], loadList);
-    Vue.onMounted(loadList);
+    // §8.3：下拉项优先取配置平台的值；未配置或拉取失败时回落模块默认常量，
+    // 保证「设置里新增的阶段 / 安全领域」能立刻出现在筛选与表单里。
+    // 以同名键覆盖上方常量返回给模板，模板无需改动。
+    const phaseOptions = Vue.computed(() => {
+      const fc = dataStore.fieldConfig;
+      const v = (fc && fc.dropdowns) ? fc.dropdowns['project.phase'] : null;
+      const src = (Array.isArray(v) && v.length) ? v : PROJECT_PHASE_OPTIONS.map(o => o.value);
+      return src.map(x => ({ label: x, value: x }));
+    });
+    const domainOptions = Vue.computed(() => {
+      const fc = dataStore.fieldConfig;
+      const v = (fc && fc.dropdowns) ? fc.dropdowns['project.securityDomain'] : null;
+      const src = (Array.isArray(v) && v.length) ? v : SECURITY_DOMAIN_OPTIONS.map(o => o.value);
+      return src.map(x => ({ label: x, value: x }));
+    });
+
+    Vue.onMounted(() => {
+      loadList();
+      dataStore.fetchFieldConfig();
+    });
 
     function resetFilters() {
       filterPhase.value = '';
@@ -79,6 +99,7 @@ const ProjectPage = {
     const selectedId = Vue.ref(null);
     const detail = Vue.ref(null);
     const detailLoading = Vue.ref(false);
+    const projectCharts = Vue.ref(null);
 
     async function selectProject(p) {
       selectedId.value = p.id;
@@ -89,8 +110,14 @@ const ProjectPage = {
       detailLoading.value = true;
       try {
         detail.value = await dataStore.fetchProjectDetail(selectedId.value);
+        try {
+          projectCharts.value = await dataStore.fetchProjectCharts(selectedId.value);
+        } catch (e) {
+          console.error(e);
+        }
       } catch (e) {
         detail.value = null;
+        projectCharts.value = null;
       } finally {
         detailLoading.value = false;
       }
@@ -406,6 +433,28 @@ const ProjectPage = {
     }
     function todayStr() { return htdDate.today(); }
 
+    // ============ 项目图表（V1.5 §8.1） ============
+    const timelineSvg = Vue.computed(() => {
+      if (!projectCharts.value) return '';
+      return C.timelineChart({ items: projectCharts.value.timeline, height: 130 });
+    });
+    const taskDonutSvg = Vue.computed(() => {
+      if (!projectCharts.value) return '';
+      const tv = projectCharts.value.taskVelocity;
+      return C.donutChart({
+        data: [
+          { label: '已完成', value: tv.done, color: 'var(--chart-series-3)' },
+          { label: '未完成', value: tv.pending, color: 'var(--chart-series-7)' },
+        ],
+        width: 160, height: 160, centerText: (tv.completionRate || 0) + '%',
+      });
+    });
+    const taskVelocityText = Vue.computed(() => {
+      if (!projectCharts.value) return '';
+      const tv = projectCharts.value.taskVelocity;
+      return '任务 ' + tv.done + '/' + tv.total + ' · 完成率 ' + (tv.completionRate || 0) + '%';
+    });
+
     return {
       // state
       projectList, loading, filterPhase, filterPriority, filterDomain, filterKeyword,
@@ -416,7 +465,8 @@ const ProjectPage = {
       newTaskName, delTaskConfirm, reviewConfirm,
       phaseSwitchModal, phaseForm, nextPhaseOptions, canSwitchPhase, isClosingPhase,
       // options
-      PROJECT_PHASE_OPTIONS, PROJECT_PRIORITY_OPTIONS, SECURITY_DOMAIN_OPTIONS, PROJECT_PHASE_TRANSITIONS,
+      PROJECT_PHASE_OPTIONS: phaseOptions, PROJECT_PRIORITY_OPTIONS,
+      SECURITY_DOMAIN_OPTIONS: domainOptions, PROJECT_PHASE_TRANSITIONS,
       // actions
       loadList, resetFilters, selectProject, loadDetail,
       openCreate, openEdit, closeForm, submitForm,
@@ -430,6 +480,8 @@ const ProjectPage = {
       // helpers
       priorityType, phaseTagType, domainText, progressColor,
       milestoneTagType, milestoneDueText, todayStr,
+      // charts
+      projectCharts, timelineSvg, taskDonutSvg, taskVelocityText,
     };
   },
   template: `
@@ -531,6 +583,25 @@ const ProjectPage = {
             <div v-if="detail.coreRequirements" class="info-block mt-sm">
               <div class="info-label">核心需求</div>
               <div class="info-content">{{ detail.coreRequirements }}</div>
+            </div>
+          </htp-card>
+
+          <!-- 项目图表（V1.5 §8.1） -->
+          <htp-card title="项目图表" class="mt-base" v-if="projectCharts && projectCharts.timeline">
+            <div class="flex align-center gap-sm mb-sm">
+              <span v-html="htdIcon('barChart',{size:16})"></span>
+              <span class="font-medium">里程碑时间线</span>
+            </div>
+            <div v-html="timelineSvg"></div>
+            <div class="flex align-center gap-base mt-base">
+              <div v-html="taskDonutSvg"></div>
+              <div class="flex-1">
+                <div class="flex align-center gap-sm mb-xs">
+                  <span v-html="htdIcon('barChart',{size:16})"></span>
+                  <span class="font-medium">任务完成速率</span>
+                </div>
+                <div class="text-sm text-tertiary">{{ taskVelocityText }}</div>
+              </div>
             </div>
           </htp-card>
 
@@ -800,7 +871,7 @@ const ProjectPage = {
             <textarea v-model="phaseForm.reason" class="htp-textarea" rows="3" placeholder="记录本阶段推进情况或切换原因..."></textarea>
           </div>
           <div v-if="isClosingPhase" class="text-sm text-warning mt-sm">
-            ⚠️ 即将结项，切换后将自动生成一份项目复盘草稿，可在「复盘与沉淀」模块继续完善。
+            即将结项，切换后将自动生成一份项目复盘草稿，可在「复盘与沉淀」模块继续完善。
           </div>
           <div v-if="!canSwitchPhase" class="text-sm text-tertiary mt-sm">
             当前阶段「{{ detail.phase }}」无更多可切换阶段（结项后仅可重开）。

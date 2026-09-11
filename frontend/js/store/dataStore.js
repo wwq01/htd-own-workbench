@@ -27,6 +27,9 @@ const useDataStore = Pinia.defineStore('data', {
 
     // 首页三栏聚合数据（V1.3 §6.1）
     homeSummary: null,
+
+    // 字段 / 状态机配置（V1.5 §8.3）：下拉项 / 自定义字段 / 状态机迁移
+    fieldConfig: null,
   }),
 
   actions: {
@@ -48,6 +51,28 @@ const useDataStore = Pinia.defineStore('data', {
         this.homeSummary = data;
       } catch (err) {
         console.error('获取首页三栏数据失败:', err);
+      }
+    },
+
+    // 拉取图表聚合数据（V1.5 §8.1）：首页 / 学习 / 财务
+    async fetchCharts() {
+      return htdApi.get('/system/charts');
+    },
+
+    // 拉取项目详情图表（V1.5 §8.1）：里程碑时间线 + 任务速率
+    async fetchProjectCharts(projectId) {
+      return htdApi.get('/system/project-charts', { projectId });
+    },
+
+    // 拉取字段 / 状态机配置（V1.5 §8.3），缓存于 store 供各模块下拉与状态机消费
+    async fetchFieldConfig() {
+      try {
+        const data = await htdApi.get('/system/field-config');
+        this.fieldConfig = data;
+        return data;
+      } catch (err) {
+        console.error('获取字段配置失败:', err);
+        return null;
       }
     },
 
@@ -786,6 +811,41 @@ const useDataStore = Pinia.defineStore('data', {
     async addIncidentAction(id, action) {
       const r = await htdApi.post(`/incidents/${id}/actions`, action);
       showToast('处置动作已追加', 'success');
+      await this.refreshAll();
+      return r;
+    },
+
+    // ============ 阅读 / 资料模块（V1.5 §8.4） ============
+    // 端点：GET/POST /readings、GET/PUT/DELETE /readings/:id、PATCH /readings/:id/status、POST /readings/:id/convert-to-vault
+    async fetchReadings(query = {}) {
+      return htdApi.get('/readings', query);
+    },
+    async createReading(payload) {
+      const r = await htdApi.post('/readings', payload);
+      showToast('阅读资料已创建', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async updateReading(id, payload) {
+      const r = await htdApi.put(`/readings/${id}`, payload);
+      showToast('阅读资料已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async deleteReading(id) {
+      await htdApi.del(`/readings/${id}`);
+      showToast('阅读资料已删除', 'success');
+      await this.refreshAll();
+    },
+    async changeReadingStatus(id, status) {
+      const r = await htdApi.patch(`/readings/${id}/status`, { status });
+      showToast('阅读状态已更新', 'success');
+      await this.refreshAll();
+      return r;
+    },
+    async convertReadingToVault(id) {
+      const r = await htdApi.post(`/readings/${id}/convert-to-vault`, {});
+      showToast('已转化为 Vault 沉淀', 'success');
       await this.refreshAll();
       return r;
     },

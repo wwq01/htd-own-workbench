@@ -530,3 +530,42 @@ model EmergencyResponse {
   @@index([severity])
   @@map("emergency_responses")
 }
+
+// ============================================================
+// V1.5 新模块模型
+// ============================================================
+
+// ===== 阅读 / 资料（知识组）=====
+model ReadingMaterial {
+  id            String   @id @default(cuid())
+  title         String // 资料标题（必填）
+  sourceUrl     String? // 来源 URL
+  type          String   @default("文章") // 文章 / 公众号 / CVE / 论文
+  tags          String   @default("[]") // 标签 JSON 数组
+  readingStatus String   @default("unread") // unread / reading / precipitated / archived
+  notes         String? // 阅读笔记（Markdown）
+  customFields  String   @default("{}") // 扩展文本字段 JSON 对象（系统设置定义，详见自定义字段规范）
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([type])
+  @@index([readingStatus])
+  @@map("reading_materials")
+}
+
+// ============================================================
+// V1.5 可配置化平台（字段 / 状态机重构，§8.3）
+// 通用键值配置表：下拉自定义项 / 自定义字段定义 / 状态机迁移规则
+// 均以 JSON 字符串存储，key 唯一。基础枚举仍由 enums.js 提供默认，
+// 本表仅存储「用户扩展 / 覆盖」部分，保持向后兼容。
+// ============================================================
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique // 例如 dropdown.project.phase / customFields.reading / stateMachine.reading.status
+  value     String   @default("{}") // JSON 字符串
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}

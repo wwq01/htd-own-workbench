@@ -149,10 +149,10 @@ const TimeBlockPage = {
     }
 
     function typeColor(type) {
-      if (type === 'WORK') return '#3B82F6';
-      if (type === 'STUDY') return '#8B5CF6';
-      if (type === 'REST') return '#10B981';
-      return '#64748B';
+      if (type === 'WORK') return 'var(--color-work)';
+      if (type === 'STUDY') return 'var(--color-knowledge)';
+      if (type === 'REST') return 'var(--color-life)';
+      return 'var(--status-pending)';
     }
 
     // ============ 补录弹窗 ============
@@ -288,7 +288,7 @@ const TimeBlockPage = {
             {{ elapsedText }}
           </div>
           <div class="tb-timer__progress" style="background:#eef0f4;border-radius:8px;height:10px;overflow:hidden">
-            <div class="tb-timer__progress-bar" :style="{ width: progressPct + '%', background: isOvertime ? '#ef4444' : '#3B82F6', height:'100%' }"></div>
+            <div class="tb-timer__progress-bar" :style="{ width: progressPct + '%', background: isOvertime ? 'var(--color-danger)' : 'var(--color-primary)', height:'100%' }"></div>
           </div>
           <div class="tb-timer__meta">
             计划 {{ runningPlannedMinutes }} 分钟 · 已进行 {{ Math.floor(elapsedMs/60000) }} 分钟
