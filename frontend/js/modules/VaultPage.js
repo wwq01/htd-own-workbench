@@ -1,7 +1,15 @@
 /**
  * VaultPage - 沉淀 Vault 页面（V1.3 新模块）
  * 沉淀项（VaultItem）的增删改查 + 详情查看
+ * S2-3 深化：markdown-it 强渲染 + [[双向链接]] 跳转 + 反链 + 标签树 + 引用图谱
  */
+
+// S2-3：Markdown 渲染与双链解析（ESM 纯函数模块）
+import {
+  renderMarkdown,
+  extractWikiLinks,
+  references,
+} from '../utils/markdown.js';
 
 // ===== 沉淀状态选项 =====
 const VAULT_STATUS_OPTIONS = [
@@ -205,6 +213,16 @@ const VaultPage = {
       item: it,
     })));
     const graphLinks = Vue.computed(() => {
+      const links = [];
+      const seen = new Set();
+      const push = (a, b, kind) => {
+        if (a === b) return;
+        const k = `${a}|${b}`;
+        if (seen.has(k)) return;
+        seen.add(k);
+        links.push({ source: a, target: b, kind });
+      };
+      // 同标签：链式相连（避免全连接的边爆炸）
       const byTag = {};
       list.value.forEach((it) => {
         (it.tagsArray || []).forEach((t) => {
@@ -212,13 +230,95 @@ const VaultPage = {
           byTag[t].push(`v${it.id}`);
         });
       });
-      const links = [];
       Object.keys(byTag).forEach((t) => {
         const ids = byTag[t];
-        for (let i = 0; i < ids.length - 1; i += 1) links.push({ source: ids[i], target: ids[i + 1] });
+        for (let i = 0; i < ids.length - 1; i += 1) push(ids[i], ids[i + 1], 'tag');
+      });
+      // [[双链]] 引用边：让图谱成为真正的「引用图谱」
+      const byTopic = {};
+      list.value.forEach((it) => {
+        byTopic[String(it.topic || '').trim().toLowerCase()] = `v${it.id}`;
+      });
+      list.value.forEach((it) => {
+        extractWikiLinks(it.content).forEach((t) => {
+          const target = byTopic[t.toLowerCase()];
+          if (target) push(`v${it.id}`, target, 'wiki');
+        });
       });
       return links;
     });
+    // ============ 双向链接 / 反链 / 标签树（S2-3） ============
+    // topic(小写) → 条目，供双链判断目标是否存在及跳转
+    const topicIndex = Vue.computed(() => {
+      const map = {};
+      list.value.forEach((it) => {
+        map[String(it.topic || '').trim().toLowerCase()] = it;
+      });
+      return map;
+    });
+    function topicExists(t) {
+      return !!topicIndex.value[String(t || '').trim().toLowerCase()];
+    }
+    // 详情正文：markdown-it 强渲染 + 双链锚点
+    const detailHtml = Vue.computed(() => (detailItem.value
+      ? renderMarkdown(detailItem.value.content, { exists: topicExists })
+      : ''));
+    const detailLinks = Vue.computed(() => (detailItem.value ? extractWikiLinks(detailItem.value.content) : []));
+    // 反链：哪些条目用 [[当前主题]] 引用了本条
+    const detailBacklinks = Vue.computed(() => {
+      if (!detailItem.value) return [];
+      const topic = String(detailItem.value.topic || '').trim();
+      return list.value.filter((it) => it.id !== detailItem.value.id && references(it.content, topic));
+    });
+    // 标签树：支持 `父/子` 两级，按引用计数排序
+    const tagTree = Vue.computed(() => {
+      const counter = {};
+      list.value.forEach((it) => {
+        (it.tagsArray || []).forEach((t) => {
+          counter[t] = (counter[t] || 0) + 1;
+        });
+      });
+      const roots = {};
+      Object.keys(counter).sort().forEach((t) => {
+        const idx = t.indexOf('/');
+        const root = idx > 0 ? t.slice(0, idx) : t;
+        const leaf = idx > 0 ? t.slice(idx + 1) : null;
+        if (!roots[root]) roots[root] = { name: root, count: 0, children: [] };
+        roots[root].count += counter[t];
+        if (leaf) roots[root].children.push({ name: t, label: leaf, count: counter[t] });
+      });
+      return Object.values(roots).sort((a, b) => b.count - a.count);
+    });
+
+    /** 详情区事件委托：点击 [[双链]] 锚点 → 跳转 */
+    function onDetailClick(e) {
+      const el = e.target && e.target.closest ? e.target.closest('[data-wiki]') : null;
+      if (!el) return;
+      const t = el.getAttribute('data-wiki');
+      if (t) jumpToTopic(t);
+    }
+    /** 跳转到某个主题：存在则开详情，不存在则预填新建（形成双链落点） */
+    function jumpToTopic(topic) {
+      const hit = topicIndex.value[String(topic || '').trim().toLowerCase()];
+      if (hit) {
+        openDetail(hit);
+        return;
+      }
+      showToast(`「${topic}」尚未创建，已为你打开新建`, 'warning');
+      openCreateWithTopic(topic);
+    }
+    /** 预填主题打开新建（双链落点） */
+    function openCreateWithTopic(topic) {
+      editingItem.value = null;
+      resetForm();
+      form.topic = topic;
+      formModalVisible.value = true;
+    }
+    /** 点击标签树：切换筛选 */
+    function selectTag(t) {
+      filterTag.value = filterTag.value === t ? '' : t;
+    }
+
     function onGraphNodeClick(node) {
       if (node && node.item) openDetail(node.item);
     }
@@ -228,6 +328,8 @@ const VaultPage = {
       filterStatus, filterTag,
       list, loading,
       graphNodes, graphLinks, onGraphNodeClick,
+      detailHtml, detailLinks, detailBacklinks, onDetailClick, jumpToTopic,
+      tagTree, selectTag, openCreateWithTopic, renderMarkdown,
       formModalVisible, editingItem, formTitle, form,
       detailVisible, detailItem, detailTags,
       delConfirm,
@@ -262,8 +364,27 @@ const VaultPage = {
         </div>
       </div>
 
+      <!-- 标签树（S2-3）：支持 父/子 两级，点击筛选 -->
+      <div v-if="tagTree.length" class="vault-tagtree">
+        <span class="text-sm text-tertiary">标签树</span>
+        <template v-for="root in tagTree" :key="root.name">
+          <button
+            class="htp-btn htp-btn--sm vault-tagbtn"
+            :class="{ 'vault-tagbtn--active': filterTag === root.name }"
+            @click="selectTag(root.name)"
+          >{{ root.name }}<span class="vault-tagbtn__count">{{ root.count }}</span></button>
+          <button
+            v-for="c in root.children"
+            :key="c.name"
+            class="htp-btn htp-btn--sm htp-btn--text vault-tagbtn vault-tagbtn--child"
+            :class="{ 'vault-tagbtn--active': filterTag === c.name }"
+            @click="selectTag(c.name)"
+          >{{ c.label }}<span class="vault-tagbtn__count">{{ c.count }}</span></button>
+        </template>
+      </div>
+
       <!-- 知识关系图谱（S2-2c）：同标签条目自动关联 -->
-      <div v-if="graphNodes.length" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+      <div v-if="graphNodes.length" class="vault-graph">
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
           <span style="font-weight:600;">知识关系图谱</span>
           <span class="text-sm text-tertiary">同标签条目自动关联 · 点击节点查看详情</span>
@@ -337,12 +458,12 @@ const VaultPage = {
             <htp-input v-model="form.topic" placeholder="请输入沉淀主题（最多 200 字）" maxlength="200"></htp-input>
           </div>
           <div class="form-item">
-            <label class="form-item__label">内容（支持 Markdown）</label>
-            <htp-textarea
+            <label class="form-item__label">内容（Markdown，用 [[主题]] 建立双向链接）</label>
+            <htp-markdown-editor
               v-model="form.content"
-              :rows="8"
-              placeholder="记录沉淀内容，支持 Markdown 文本"
-            ></htp-textarea>
+              :render="renderMarkdown"
+              placeholder="记录沉淀内容，支持 Markdown 与 [[双向链接]]"
+            ></htp-markdown-editor>
           </div>
           <div class="form-item">
             <label class="form-item__label">标签</label>
@@ -406,7 +527,31 @@ const VaultPage = {
               class="mr-xs mb-xs"
             >{{ t }}</htp-tag>
           </div>
-          <div class="vault-detail__content">{{ detailItem.content }}</div>
+          <div
+            class="vault-detail__content markdown-body"
+            @click="onDetailClick"
+            v-html="detailHtml"
+          ></div>
+          <div v-if="detailLinks.length || detailBacklinks.length" class="vault-detail__refs">
+            <div v-if="detailLinks.length" class="vault-detail__ref-row">
+              <span class="text-sm text-tertiary">引用了：</span>
+              <button
+                v-for="t in detailLinks"
+                :key="'out-' + t"
+                class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm"
+                @click="jumpToTopic(t)"
+              >{{ t }}</button>
+            </div>
+            <div v-if="detailBacklinks.length" class="vault-detail__ref-row">
+              <span class="text-sm text-tertiary">被引用（{{ detailBacklinks.length }}）：</span>
+              <button
+                v-for="b in detailBacklinks"
+                :key="'in-' + b.id"
+                class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm"
+                @click="openDetail(b)"
+              >{{ b.topic }}</button>
+            </div>
+          </div>
           <div class="vault-detail__footer text-xs text-tertiary mt-sm">
             创建：{{ formatDateTime(detailItem.createdAt) }} · 更新：{{ formatDateTime(detailItem.updatedAt) }}
           </div>

@@ -4,6 +4,7 @@
  * v-model 绑定文本；工具栏支持加粗/斜体/标题/列表/链接/代码环绕；
  * 预览由 markdown-it 渲染（html:false 关闭原始 HTML 注入，linkify 开启）。
  * 注：预览区 v-html 用于渲染自身生成的 HTML，非 P0-3 图表字符串拼接问题。
+ * S2-3：可传 render 函数覆盖默认渲染（Vault 传入带 [[双链]] 解析的 renderMarkdown）。
  */
 import { ref, computed, watch, nextTick } from 'vue';
 import MarkdownIt from 'markdown-it';
@@ -13,6 +14,8 @@ const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 const props = defineProps({
   modelValue: { type: String, default: '' },
   placeholder: { type: String, default: '输入 Markdown...' },
+  /** 自定义渲染函数 (src) => html，未传则用内置 markdown-it（html:false） */
+  render: { type: Function, default: null },
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -27,7 +30,9 @@ watch(
   }
 );
 
-const html = computed(() => md.render(text.value || ''));
+const html = computed(() => (typeof props.render === 'function'
+  ? props.render(text.value || '')
+  : md.render(text.value || '')));
 
 function onInput(e) {
   text.value = e.target.value;
