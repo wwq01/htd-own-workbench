@@ -23,7 +23,6 @@ import '../js/utils/draft-state.js';
 import '../js/utils/draft-saver.js';
 import '../js/utils/polling.js';
 import '../js/utils/capability-detector.js';
-import '../js/utils/charts.js';
 
 // ===== 模块注册表（S1 单一数据源，须先于 router.js / HtpCommandPalette.js / app.js） =====
 import '../js/registry.js';

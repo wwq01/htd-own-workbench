@@ -195,10 +195,39 @@ const VaultPage = {
     // ============ 杂项 ============
     function formatDateTime(d) { return htdDate.formatDateTime(d); }
 
+    // ============ 知识关系图谱（S2-2c） ============
+    // 节点 = 沉淀条目；边 = 同一标签下的条目链式相连（避免全连接的边爆炸）
+    const graphNodes = Vue.computed(() => list.value.map((it) => ({
+      id: `v${it.id}`,
+      label: String(it.topic || '未命名').slice(0, 12),
+      group: it.status || 'default',
+      size: (it.tagsArray || []).length,
+      item: it,
+    })));
+    const graphLinks = Vue.computed(() => {
+      const byTag = {};
+      list.value.forEach((it) => {
+        (it.tagsArray || []).forEach((t) => {
+          if (!byTag[t]) byTag[t] = [];
+          byTag[t].push(`v${it.id}`);
+        });
+      });
+      const links = [];
+      Object.keys(byTag).forEach((t) => {
+        const ids = byTag[t];
+        for (let i = 0; i < ids.length - 1; i += 1) links.push({ source: ids[i], target: ids[i + 1] });
+      });
+      return links;
+    });
+    function onGraphNodeClick(node) {
+      if (node && node.item) openDetail(node.item);
+    }
+
     return {
       // state
       filterStatus, filterTag,
       list, loading,
+      graphNodes, graphLinks, onGraphNodeClick,
       formModalVisible, editingItem, formTitle, form,
       detailVisible, detailItem, detailTags,
       delConfirm,
@@ -231,6 +260,20 @@ const VaultPage = {
         <div style="margin-left:auto">
           <button class="htp-btn htp-btn--primary" @click="openCreate">+ 新增沉淀</button>
         </div>
+      </div>
+
+      <!-- 知识关系图谱（S2-2c）：同标签条目自动关联 -->
+      <div v-if="graphNodes.length" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
+          <span style="font-weight:600;">知识关系图谱</span>
+          <span class="text-sm text-tertiary">同标签条目自动关联 · 点击节点查看详情</span>
+        </div>
+        <htp-graph-canvas
+          :nodes="graphNodes"
+          :links="graphLinks"
+          :height="320"
+          @node-click="onGraphNodeClick"
+        ></htp-graph-canvas>
       </div>
 
       <!-- 列表区 -->

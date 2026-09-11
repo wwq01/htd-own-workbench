@@ -40,7 +40,6 @@ const ProjectPage = {
   name: 'ProjectPage',
   setup() {
     const dataStore = useDataStore();
-    const C = window.htdCharts;
 
     // ============ 列表 & 筛选 ============
     const projectList = Vue.ref([]);
@@ -433,22 +432,7 @@ const ProjectPage = {
     }
     function todayStr() { return htdDate.today(); }
 
-    // ============ 项目图表（V1.5 §8.1） ============
-    const timelineSvg = Vue.computed(() => {
-      if (!projectCharts.value) return '';
-      return C.timelineChart({ items: projectCharts.value.timeline, height: 130 });
-    });
-    const taskDonutSvg = Vue.computed(() => {
-      if (!projectCharts.value) return '';
-      const tv = projectCharts.value.taskVelocity;
-      return C.donutChart({
-        data: [
-          { label: '已完成', value: tv.done, color: 'var(--chart-series-3)' },
-          { label: '未完成', value: tv.pending, color: 'var(--chart-series-7)' },
-        ],
-        width: 160, height: 160, centerText: (tv.completionRate || 0) + '%',
-      });
-    });
+    // ============ 项目图表（S2-2a 响应式组件替代 v-html）============
     const taskVelocityText = Vue.computed(() => {
       if (!projectCharts.value) return '';
       const tv = projectCharts.value.taskVelocity;
@@ -481,7 +465,7 @@ const ProjectPage = {
       priorityType, phaseTagType, domainText, progressColor,
       milestoneTagType, milestoneDueText, todayStr,
       // charts
-      projectCharts, timelineSvg, taskDonutSvg, taskVelocityText,
+      projectCharts, taskVelocityText,
     };
   },
   template: `
@@ -592,9 +576,9 @@ const ProjectPage = {
               <span v-html="htdIcon('barChart',{size:16})"></span>
               <span class="font-medium">里程碑时间线</span>
             </div>
-            <div v-html="timelineSvg"></div>
+            <HtpTimelineChart v-if="projectCharts && projectCharts.timeline" :items="projectCharts.timeline" :height="130" />
             <div class="flex align-center gap-base mt-base">
-              <div v-html="taskDonutSvg"></div>
+              <HtpDonutChart :data="[{ label: '已完成', value: projectCharts.taskVelocity.done, color: 'var(--chart-series-3)' }, { label: '未完成', value: projectCharts.taskVelocity.pending, color: 'var(--chart-series-7)' }]" :width="160" :height="160" :center-text="(projectCharts.taskVelocity.completionRate || 0) + '%'" />
               <div class="flex-1">
                 <div class="flex align-center gap-sm mb-xs">
                   <span v-html="htdIcon('barChart',{size:16})"></span>

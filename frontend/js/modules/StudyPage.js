@@ -19,7 +19,6 @@ const StudyPage = {
     const activeTab = Vue.ref('record');
 
     // ============ 学习统计图表（V1.5 §8.1） ============
-    const C = window.htdCharts;
     const charts = Vue.ref(null);
     async function loadCharts() {
       try {
@@ -28,21 +27,8 @@ const StudyPage = {
     }
     const chartPeriod = Vue.ref('monthly');
     function setChartPeriod(p) { chartPeriod.value = p; }
-    const studyPeriodSvg = Vue.computed(() => {
-      if (!charts.value || !charts.value.study) return '';
-      const map = { daily: charts.value.study.daily, weekly: charts.value.study.weekly, monthly: charts.value.study.monthly };
-      const data = map[chartPeriod.value] || [];
-      return C.barChart({ data, height: 170, color: 'var(--chart-series-2)' });
-    });
-    const studyStackedSvg = Vue.computed(() => {
-      if (!charts.value || !charts.value.study) return '';
-      const ds = charts.value.study.directionStacked;
-      return C.stackedBarChart({ data: ds.data, series: ds.series, height: 220 });
-    });
-    const studyStackedLegend = Vue.computed(() => {
-      if (!charts.value || !charts.value.study) return '';
-      return C.legend(charts.value.study.directionStacked.series.map(function (s) { return { label: s.label, color: s.color }; }));
-    });
+
+    // S2-2a 图表已由 Htp*Chart 响应式组件渲染，StudyPage 不再拼 SVG
 
     // ============ 学习时长统计 ============
     const weekHours = Vue.ref(0);
@@ -299,7 +285,7 @@ const StudyPage = {
       // 选项
       STUDY_TYPE_OPTIONS, STUDY_TYPE_FORM_OPTIONS,
       // 学习统计图表
-      charts, chartPeriod, setChartPeriod, studyPeriodSvg, studyStackedSvg, studyStackedLegend,
+      charts, chartPeriod, setChartPeriod,
     };
   },
   template: `
@@ -315,12 +301,12 @@ const StudyPage = {
               <button class="htp-btn htp-btn--sm" :class="{ 'htp-btn--primary': chartPeriod === 'monthly' }" @click="setChartPeriod('monthly')">月</button>
             </div>
           </div>
-          <div v-html="studyPeriodSvg"></div>
+          <HtpBarChart v-if="charts.study[chartPeriod]" :data="charts.study[chartPeriod].map(d => ({ label: d.label, value: d.value }))" :height="170" color="var(--chart-series-2)" />
         </div>
         <div class="stat-card" style="padding: var(--spacing-lg);">
           <div style="font-weight: 600; margin-bottom: 12px;">按技术方向堆叠</div>
-          <div v-html="studyStackedSvg"></div>
-          <div v-html="studyStackedLegend" style="margin-top: 8px;"></div>
+          <HtpStackedBarChart :data="charts.study.directionStacked.data" :series="charts.study.directionStacked.series" :height="220" />
+          <HtpChartLegend :items="charts.study.directionStacked.series.map(s => ({ label: s.label, color: s.color }))" style="margin-top: 8px;" />
         </div>
       </div>
 

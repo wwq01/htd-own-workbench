@@ -11,6 +11,15 @@ import HtpDrawer from './components/HtpDrawer.vue';
 import HtpTooltip from './components/HtpTooltip.vue';
 import HtpMarkdownEditor from './components/HtpMarkdownEditor.vue';
 
+// ===== S2-2a 图表组件（.vue SFC，响应式替代 v-html）=====
+import HtpBarChart from './components/HtpBarChart.vue';
+import HtpDonutChart from './components/HtpDonutChart.vue';
+import HtpLineChart from './components/HtpLineChart.vue';
+import HtpStackedBarChart from './components/HtpStackedBarChart.vue';
+import HtpTimelineChart from './components/HtpTimelineChart.vue';
+import HtpChartLegend from './components/HtpChartLegend.vue';
+import HtpGraphCanvas from './components/HtpGraphCanvas.vue';
+
 // ===== 导航菜单配置 =====
 // ===== 导航菜单配置（S1：由 registry.js 单一数据源派生，新增模块无需改本文件）=====
 const NAV_ITEMS =
@@ -316,6 +325,14 @@ app.component('HtpTable', HtpTable);
 app.component('HtpDrawer', HtpDrawer);
 app.component('HtpTooltip', HtpTooltip);
 app.component('HtpMarkdownEditor', HtpMarkdownEditor);
+// S2-2a 图表组件注册
+app.component('HtpBarChart', HtpBarChart);
+app.component('HtpDonutChart', HtpDonutChart);
+app.component('HtpLineChart', HtpLineChart);
+app.component('HtpStackedBarChart', HtpStackedBarChart);
+app.component('HtpTimelineChart', HtpTimelineChart);
+app.component('HtpChartLegend', HtpChartLegend);
+app.component('HtpGraphCanvas', HtpGraphCanvas);
 
 // 挂载应用
 app.mount('#app');

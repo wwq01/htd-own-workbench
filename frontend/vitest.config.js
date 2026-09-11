@@ -16,6 +16,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // 开启 rAF（图谱组件依赖 requestAnimationFrame 驱动力导向循环）
+    environmentOptions: { jsdom: { pretendToBeVisual: true } },
     include: ['tests/**/*.spec.js'],
   },
 });

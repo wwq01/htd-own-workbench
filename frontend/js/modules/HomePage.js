@@ -90,39 +90,13 @@ const HomePage = {
     }
     Vue.onMounted(loadCharts);
 
-    const C = window.htdCharts;
-    const weekTrendSvg = Vue.computed(() => {
-      if (!charts.value) return '';
-      const data = charts.value.home.weekCompletionTrend.map((d) => ({ label: d.label, value: d.completed }));
-      return C.barChart({ data, height: 150, showValue: false });
-    });
-    const phaseSvg = Vue.computed(() => {
-      if (!charts.value) return '';
-      const dist = charts.value.home.projectPhaseDistribution;
-      const total = dist.reduce((s, d) => s + (d.value || 0), 0);
-      return C.donutChart({ data: dist, width: 170, height: 170, centerText: String(total) });
-    });
-    const phaseLegend = Vue.computed(() => {
-      if (!charts.value) return '';
-      return C.legend(charts.value.home.projectPhaseDistribution.map((d) => ({ label: d.label, color: d.color })));
-    });
-    const studySvg = Vue.computed(() => {
-      if (!charts.value) return '';
-      const data = charts.value.home.studyHours.map((d) => ({ label: d.label, value: d.value }));
-      return C.barChart({ data, height: 150, color: 'var(--chart-series-2)' });
-    });
-    const habitSvg = Vue.computed(() => {
-      if (!charts.value) return '';
-      const data = charts.value.home.habitCompletionRate.map((d) => ({ label: d.label, value: d.value }));
-      return C.barChart({ data, height: 150, color: 'var(--chart-series-3)' });
-    });
+    // S2-2a 图表已由 Htp*Chart 响应式组件渲染，首页不再拼 SVG
 
     return {
       appStore, dataStore,
       todayStr, weekday, greeting,
       home,
       charts,
-      weekTrendSvg, phaseSvg, phaseLegend, studySvg, habitSvg,
       fmtDate, relativeTime, formatMoney,
       goTodo, goProject, goMeeting, goSecret, goStudy, goReview, goVault, goHabit, goTimeBlock, goFinance,
       goMeetingDetail, goProjectDetail,
@@ -348,26 +322,26 @@ const HomePage = {
         </div>
       </div>
 
-      <!-- 数据看板：V1.5 §8.1 首页统计图表 -->
+      <!-- 数据看板：V1.5 §8.1 首页统计图表（S2-2a 响应式组件化） -->
       <div v-if="charts && charts.home" class="home-charts" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--spacing-lg);margin-top:var(--spacing-lg);">
         <div class="home-card">
           <div class="home-card__title">本周完成趋势</div>
-          <div class="home-chart" v-html="weekTrendSvg"></div>
+          <HtpBarChart :data="charts.home.weekCompletionTrend.map(d => ({ label: d.label, value: d.completed }))" :height="150" />
         </div>
         <div class="home-card">
           <div class="home-card__title">项目阶段分布</div>
           <div style="display:flex;gap:var(--spacing-lg);align-items:center;flex-wrap:wrap;">
-            <div class="home-chart" v-html="phaseSvg"></div>
-            <div v-html="phaseLegend"></div>
+            <HtpDonutChart :data="charts.home.projectPhaseDistribution" :width="170" :height="170" :center-text="String(charts.home.projectPhaseDistribution.reduce((s, d) => s + (d.value || 0), 0))" />
+            <HtpChartLegend :items="charts.home.projectPhaseDistribution.map(d => ({ label: d.label, color: d.color }))" />
           </div>
         </div>
         <div class="home-card">
           <div class="home-card__title">学习时长趋势（小时）</div>
-          <div class="home-chart" v-html="studySvg"></div>
+          <HtpBarChart :data="charts.home.studyHours.map(d => ({ label: d.label, value: d.value }))" :height="150" color="var(--chart-series-2)" />
         </div>
         <div class="home-card">
           <div class="home-card__title">习惯完成率（%）</div>
-          <div class="home-chart" v-html="habitSvg"></div>
+          <HtpBarChart :data="charts.home.habitCompletionRate.map(d => ({ label: d.label, value: d.value }))" :height="150" color="var(--chart-series-3)" />
         </div>
       </div>
     </div>
