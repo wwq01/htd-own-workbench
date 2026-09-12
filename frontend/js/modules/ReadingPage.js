@@ -120,13 +120,14 @@ const ReadingPage = {
       readingStatus: READING_STATUS.UNREAD,
       tags: '',
       notes: '',
+      content: '', // S2-4：原文正文（双轨笔记的锚定对象）
       customFields: [], // [{ key, value }]
     });
 
     function resetForm() {
       Object.assign(form, {
         title: '', sourceUrl: '', type: READING_TYPE.ARTICLE, readingStatus: READING_STATUS.UNREAD,
-        tags: '', notes: '', customFields: [],
+        tags: '', notes: '', content: '', customFields: [],
       });
     }
     function openCreate() {
@@ -145,6 +146,7 @@ const ReadingPage = {
         readingStatus: item.readingStatus || READING_STATUS.UNREAD,
         tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
         notes: item.notes || '',
+        content: item.content || '',
         customFields: cfRows,
       });
       formModalVisible.value = true;
@@ -174,6 +176,7 @@ const ReadingPage = {
         readingStatus: form.readingStatus,
         tags,
         notes: (form.notes || '').trim() || null,
+        content: (form.content || '').trim() || null,
         customFields: buildCustomFields(),
       };
       try {
@@ -191,6 +194,104 @@ const ReadingPage = {
     async function onConvert(item) {
       try {
         await dataStore.convertReadingToVault(item.id);
+        await loadList();
+      } catch (e) { /* toast 已显示 */ }
+    }
+
+    // ============ S2-4 双轨笔记（原文 ↔ 笔记 双向跳转） ============
+    const trackVisible = Vue.ref(false);
+    const trackItem = Vue.ref(null);
+    const sourceRef = Vue.ref(null);
+    const notes = Vue.ref([]);
+    const notesLoading = Vue.ref(false);
+    const sourceEditing = Vue.ref(false);
+    const sourceDraft = Vue.ref('');
+    const noteContent = Vue.ref('');
+    // 划选待建笔记的原文片段：{ start, end, text }
+    const pendingQuote = Vue.ref(null);
+
+    async function loadNotes() {
+      if (!trackItem.value) return;
+      notesLoading.value = true;
+      try {
+        notes.value = await dataStore.fetchNotes({
+          sourceType: 'READING', sourceId: trackItem.value.id,
+        });
+      } catch (e) { /* toast 已显示 */ }
+      notesLoading.value = false;
+    }
+
+    async function openTrack(item) {
+      trackItem.value = item;
+      sourceDraft.value = item.content || '';
+      sourceEditing.value = false;
+      pendingQuote.value = null;
+      noteContent.value = '';
+      trackVisible.value = true;
+      await loadNotes();
+    }
+
+    function closeTrack() {
+      trackVisible.value = false;
+      trackItem.value = null;
+      notes.value = [];
+      pendingQuote.value = null;
+    }
+
+    /** 原文区 mouseup：捕获划选，换算成相对原文的锚点偏移 */
+    function onSourceMouseUp() {
+      const el = sourceRef.value;
+      if (!el || !window.htdAnchor) return;
+      const sel = window.htdAnchor.getSelectionOffsets(el);
+      if (!sel || !String(sel.text || '').trim()) { pendingQuote.value = null; return; }
+      pendingQuote.value = { start: sel.start, end: sel.end, text: sel.text };
+    }
+
+    function clearQuote() { pendingQuote.value = null; }
+
+    async function submitNote() {
+      const content = (noteContent.value || '').trim();
+      if (!content) { showToast('笔记内容不能为空', 'warning'); return; }
+      if (!trackItem.value) return;
+      const q = pendingQuote.value;
+      try {
+        await dataStore.createNote({
+          sourceType: 'READING',
+          sourceId: trackItem.value.id,
+          content,
+          quote: q ? q.text : null,
+          anchor: q ? JSON.stringify({ start: q.start, end: q.end }) : null,
+        });
+        noteContent.value = '';
+        pendingQuote.value = null;
+        await loadNotes();
+      } catch (e) { /* toast 已显示 */ }
+    }
+
+    async function removeNote(n) {
+      try {
+        await dataStore.deleteNote(n.id);
+        await loadNotes();
+      } catch (e) { /* toast 已显示 */ }
+    }
+
+    /** 点击笔记 → 清除旧高亮，包裹并滚动定位到原文对应片段 */
+    function focusNote(n) {
+      const el = sourceRef.value;
+      if (!el || sourceEditing.value || !window.htdAnchor) return;
+      const a = window.htdAnchor.parseAnchor(n.anchor);
+      if (!a) { showToast('该笔记没有锚点（可能未划选原文）', 'warning'); return; }
+      window.htdAnchor.clearHighlights(el);
+      const text = window.htdAnchor.highlightOffsets(el, a.start, a.end);
+      if (!text) showToast('原文已变更，无法定位到该片段', 'warning');
+    }
+
+    async function saveSource() {
+      if (!trackItem.value) return;
+      try {
+        await dataStore.updateReading(trackItem.value.id, { content: sourceDraft.value });
+        trackItem.value = Object.assign({}, trackItem.value, { content: sourceDraft.value });
+        sourceEditing.value = false;
         await loadList();
       } catch (e) { /* toast 已显示 */ }
     }
@@ -227,6 +328,10 @@ const ReadingPage = {
       onConvert,
       requestDelete, cancelDelete, confirmDoDelete,
       unreadCount, precipitatedCount,
+      // S2-4 双轨笔记
+      trackVisible, trackItem, sourceRef, notes, notesLoading,
+      sourceEditing, sourceDraft, noteContent, pendingQuote,
+      openTrack, closeTrack, onSourceMouseUp, clearQuote, submitNote, removeNote, focusNote, saveSource,
     };
   },
   template: `
@@ -289,6 +394,7 @@ const ReadingPage = {
                   :options="statusOptionsFor(item)"
                   @change="(v) => onStatusChange(item, v)"
                 ></htp-select>
+                <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="openTrack(item)" title="双轨：原文与笔记对照">双轨</button>
                 <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="onConvert(item)" title="转化为 Vault 沉淀">沉淀</button>
                 <button class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="openEdit(item)">编辑</button>
                 <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click="requestDelete(item)">删除</button>
@@ -334,6 +440,10 @@ const ReadingPage = {
             <htp-textarea v-model="form.notes" :rows="4" placeholder="阅读笔记、要点摘录（可选）" maxlength="20000"></htp-textarea>
           </div>
           <div class="form-item">
+            <label class="form-item__label">原文正文（双轨笔记，可留空后补）</label>
+            <htp-textarea v-model="form.content" :rows="8" placeholder="粘贴原文正文；保存后可在列表「双轨」中划选片段建立锚点笔记" maxlength="20000"></htp-textarea>
+          </div>
+          <div class="form-item">
             <label class="form-item__label">自定义扩展字段</label>
             <div class="custom-field-editor">
               <div v-for="(row, i) in form.customFields" :key="i" class="custom-field-row">
@@ -361,6 +471,62 @@ const ReadingPage = {
           <div class="text-primary font-medium bg-bg-tertiary rounded p-sm">{{ delConfirm.title }}</div>
         </div>
       </htp-modal>
+
+      <!-- S2-4 双轨笔记抽屉：左原文（可划选建锚点） / 右笔记（点击回跳原文） -->
+      <htp-drawer v-model="trackVisible" title="双轨笔记：原文 ↔ 笔记" width="1080px" @close="closeTrack">
+        <div v-if="trackItem" class="read-track">
+          <section class="read-track__col">
+            <div class="read-track__head">
+              <span class="read-track__title">原文正文</span>
+              <button v-if="!sourceEditing" class="htp-btn htp-btn--text htp-btn--primary htp-btn--sm" @click="sourceEditing = true">编辑原文</button>
+              <template v-else>
+                <button class="htp-btn htp-btn--primary htp-btn--sm" @click="saveSource">保存原文</button>
+                <button class="htp-btn htp-btn--text htp-btn--sm" @click="sourceEditing = false; sourceDraft = trackItem.content || ''">取消</button>
+              </template>
+            </div>
+            <textarea
+              v-if="sourceEditing"
+              v-model="sourceDraft"
+              class="read-track__editor"
+              rows="22"
+              placeholder="粘贴原文正文（本地存储，用于笔记锚点定位）"
+            ></textarea>
+            <div
+              v-else
+              ref="sourceRef"
+              class="read-track__source"
+              @mouseup="onSourceMouseUp"
+            >{{ trackItem.content || '（暂无原文，点击右上角「编辑原文」粘贴正文）' }}</div>
+            <div v-if="pendingQuote" class="read-track__quote">
+              <span class="read-track__quote-label">已选中片段</span>
+              <span class="read-track__quote-text">{{ pendingQuote.text }}</span>
+              <button class="htp-btn htp-btn--text htp-btn--sm" @click="clearQuote">取消选择</button>
+            </div>
+          </section>
+
+          <section class="read-track__col read-track__col--notes">
+            <div class="read-track__head">
+              <span class="read-track__title">笔记（{{ notes.length }}）</span>
+            </div>
+            <div class="read-track__noteform">
+              <textarea v-model="noteContent" rows="3" placeholder="输入笔记；先在左侧划选原文即可建立锚点"></textarea>
+              <button class="htp-btn htp-btn--primary htp-btn--sm" @click="submitNote">添加笔记</button>
+            </div>
+            <div v-if="notesLoading" class="text-sm text-tertiary">加载中...</div>
+            <htp-empty v-else-if="notes.length === 0" text="还没有笔记，划选左侧原文后添加"></htp-empty>
+            <ul v-else class="read-track__notes">
+              <li v-for="n in notes" :key="n.id" class="read-track__note" @click="focusNote(n)">
+                <div v-if="n.quote" class="read-track__note-quote">{{ n.quote }}</div>
+                <div class="read-track__note-body">{{ n.content }}</div>
+                <div class="read-track__note-foot">
+                  <span v-if="n.anchor" class="read-track__anchor-flag">已锚定</span>
+                  <button class="htp-btn htp-btn--text htp-btn--danger htp-btn--sm" @click.stop="removeNote(n)">删除</button>
+                </div>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </htp-drawer>
     </div>
   `,
 };

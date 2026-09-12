@@ -39,6 +39,7 @@ import bidRouter from './modules/bid/bid.router.js';
 import vulnRouter from './modules/vuln/vuln.router.js';
 import incidentRouter from './modules/incident/incident.router.js';
 import readingRouter from './modules/reading/reading.router.js';
+import noteRouter from './modules/note/note.router.js';
 import searchRouter from './modules/search/search.router.js';
 import logger from './common/logger.js';
 
@@ -105,6 +106,7 @@ function createApp() {
   app.use(`${appConfig.apiPrefix}/vulns`, vulnRouter);
   app.use(`${appConfig.apiPrefix}/incidents`, incidentRouter);
   app.use(`${appConfig.apiPrefix}/readings`, readingRouter);
+  app.use(`${appConfig.apiPrefix}/notes`, noteRouter);
   app.use(`${appConfig.apiPrefix}/search`, searchRouter);
 
   // ===== 前端静态资源托管 =====

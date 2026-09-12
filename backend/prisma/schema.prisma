@@ -544,6 +544,7 @@ model ReadingMaterial {
   tags          String   @default("[]") // 标签 JSON 数组
   readingStatus String   @default("unread") // unread / reading / precipitated / archived
   notes         String? // 阅读笔记（Markdown）
+  content       String? // 原文正文（本地存储，S2-4 双轨：笔记锚点定位与回跳的基础）
   customFields  String   @default("{}") // 扩展文本字段 JSON 对象（系统设置定义，详见自定义字段规范）
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
@@ -553,6 +554,29 @@ model ReadingMaterial {
   @@index([type])
   @@index([readingStatus])
   @@map("reading_materials")
+}
+
+// ============================================================
+// S2-4 双轨笔记：通用软关联笔记（阅读 / 会议 / 沉淀 均可挂载）
+// 采用 sourceType + sourceId 软关联（沿用 VaultItem 惯例），
+// 不建外键约束，保证来源记录软删后笔记仍可追溯。
+// anchor 为原文字符偏移 JSON：{ start, end }，用于笔记 ↔ 原文双向跳转。
+// ============================================================
+model Note {
+  id         String   @id @default(cuid())
+  sourceType String   @default("READING") // READING / MEETING / VAULT / MANUAL
+  sourceId   String? // 来源记录 ID（软关联，无外键）
+  content    String   @default("") // 笔记正文（Markdown）
+  quote      String? // 锚定的原文片段快照（原文变更时仍可展示）
+  anchor     String? // 锚点 JSON：{ start, end } 字符偏移
+  tags       String   @default("[]") // 标签 JSON 数组
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@index([sourceType])
+  @@index([sourceId])
+  @@map("notes")
 }
 
 // ============================================================

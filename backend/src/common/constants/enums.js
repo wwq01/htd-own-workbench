@@ -205,6 +205,14 @@ export const VAULT_SOURCE_TYPE = {
   READING_NOTE: 'READING_NOTE',
 };
 
+// ===== S2-4 双轨笔记：笔记挂载来源（通用软关联 sourceType + sourceId）=====
+export const NOTE_SOURCE_TYPE = {
+  READING: 'READING', // 阅读资料（原文 ↔ 笔记 双轨）
+  MEETING: 'MEETING', // 会议纪要
+  VAULT: 'VAULT', // 沉淀条目
+  MANUAL: 'MANUAL', // 独立笔记
+};
+
 // ===== 项目阶段合法迁移（6 阶段，中文值对齐现有 PROJECT_PHASE）=====
 export const PROJECT_PHASE_TRANSITIONS = {
   '需求沟通': ['方案撰写', 'POC演示', '项目结项', '需求沟通'],

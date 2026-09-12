@@ -2028,3 +2028,165 @@
 .custom-field-row { display: flex; gap: 8px; align-items: center; }
 .custom-field-row .cf-key { flex: 0 0 38%; }
 .custom-field-row .cf-value { flex: 1; }
+
+/* ============================================================
+   S2-4 双轨笔记（ReadingPage）：左原文 / 右笔记
+   全部使用设计令牌，零裸 hex（visual-audit 门禁）
+   ============================================================ */
+.read-track {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  min-height: 0;
+  height: 100%;
+}
+.read-track__col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.read-track__col--notes {
+  border-left: 1px solid var(--border-default);
+  padding-left: var(--spacing-lg);
+}
+.read-track__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  flex: none;
+}
+.read-track__title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+/* 原文区：可划选，preserve 换行与空格 */
+.read-track__source {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  cursor: text;
+}
+.read-track__editor {
+  flex: 1;
+  min-height: 320px;
+  padding: var(--spacing-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.8;
+  resize: vertical;
+}
+.read-track__quote {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  padding: 6px var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  flex: none;
+}
+.read-track__quote-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex: none;
+}
+.read-track__quote-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.read-track__noteform {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+  flex: none;
+}
+.read-track__noteform textarea {
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+}
+.read-track__notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.read-track__note {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+.read-track__note:hover {
+  border-color: var(--color-primary);
+}
+.read-track__note-quote {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border-left: 2px solid var(--color-primary);
+  padding-left: 6px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.read-track__note-body {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.read-track__note-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.read-track__anchor-flag {
+  font-size: 12px;
+  color: var(--color-primary);
+}
+/* 笔记回跳时在原文区生成的高亮（由 anchor.js 动态插入 <mark>） */
+.htd-anchor-highlight {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: 2px;
+  padding: 0 2px;
+}

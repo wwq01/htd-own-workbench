@@ -849,6 +849,21 @@ const useDataStore = Pinia.defineStore('data', {
       await this.refreshAll();
       return r;
     },
+
+    // ============ S2-4 双轨笔记模块 ============
+    // 笔记是来源记录下的子资源，刻意不做 refreshAll（避免为一条笔记刷新全部模块）
+    async fetchNotes(query = {}) {
+      return htdApi.get('/notes', query);
+    },
+    async createNote(payload) {
+      return htdApi.post('/notes', payload);
+    },
+    async updateNote(id, payload) {
+      return htdApi.put(`/notes/${id}`, payload);
+    },
+    async deleteNote(id) {
+      await htdApi.del(`/notes/${id}`);
+    },
   },
 });
 
