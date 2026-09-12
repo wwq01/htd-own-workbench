@@ -9,7 +9,7 @@
     "start": "node src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "node scripts/validate-theme.js && node scripts/visual-audit.js && node scripts/verify-registry.js",
+    "lint": "node scripts/validate-theme.js && node scripts/visual-audit.js && node scripts/verify-registry.js && node scripts/verify-tauri-config.js",
     "theme:validate": "node scripts/validate-theme.js",
     "audit": "node scripts/check-schemas.mjs",
     "db:generate": "prisma generate",

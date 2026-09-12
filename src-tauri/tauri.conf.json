@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "荒天帝工作台",
+  "version": "2.0.0",
+  "identifier": "com.htd.workbench",
+  "build": {
+    "beforeDevCommand": "node ../backend/scripts/prepare-tauri-sidecar.mjs",
+    "beforeBuildCommand": "node ../backend/scripts/prepare-tauri-sidecar.mjs"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "荒天帝工作台",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "center": true,
+        "resizable": true,
+        "visible": false,
+        "url": "about:blank"
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "withGlobalTauri": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "externalBin": ["binaries/htd-backend"],
+    "copyright": "Copyright © 2026 htd-own-workbench",
+    "category": "Productivity",
+    "shortDescription": "本地优先的个人工作生活一体化平台",
+    "longDescription": "荒天帝工作台：工作 / 生活 / 知识三组一体化的本地优先平台，数据存于本机，离线可用。"
+  }
+}

@@ -1,0 +1,31 @@
+[package]
+name = "htd-own-workbench"
+version = "2.0.0"
+description = "荒天帝工作台 · 本地优先的个人工作生活一体化平台"
+authors = ["htd-own-workbench"]
+edition = "2021"
+rust-version = "1.77.2"
+
+# 桌面端只需要一个二进制入口（src/main.rs），不额外产出 lib target。
+# 将来若接入移动端，再拆出 src/lib.rs 并在 Cargo.toml 声明 [lib]。
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "2.11.5", features = [] }
+tauri-plugin-shell = "2.3.6"
+tauri-plugin-single-instance = "2.4.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+# 由 tauri-build 依据 capabilities 目录自动生成权限清单，勿手改
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
