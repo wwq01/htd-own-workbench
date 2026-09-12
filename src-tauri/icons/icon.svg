@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#15263F"/>
+      <stop offset="1" stop-color="#0A1322"/>
+    </linearGradient>
+    <radialGradient id="glowGrad" cx="0.5" cy="0.32" r="0.62">
+      <stop offset="0" stop-color="#5B8DEF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#5B8DEF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7FB0FF"/>
+      <stop offset="1" stop-color="#2F6BEE"/>
+    </linearGradient>
+    <linearGradient id="starGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE9A8"/>
+      <stop offset="1" stop-color="#F2B23E"/>
+    </linearGradient>
+    <linearGradient id="glassHi" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="tileClip">
+      <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"/>
+    </clipPath>
+  </defs>
+
+  <!-- 圆角方块底 -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#bgGrad)"/>
+
+  <g clip-path="url(#tileClip)">
+    <!-- 青色光晕 -->
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#glowGrad)"/>
+    <!-- 玻璃高光 -->
+    <ellipse cx="360" cy="300" rx="300" ry="200" fill="url(#glassHi)"/>
+  </g>
+
+  <!-- 盾徽 -->
+  <path d="M512 250 L716 330 V520 C716 648 628 742 512 794 C396 742 308 648 308 520 V330 Z"
+        fill="url(#shieldGrad)" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="6"/>
+  <!-- 盾内描边（层次） -->
+  <path d="M512 296 L676 360 V520 C676 624 600 704 512 748 C424 704 348 624 348 520 V360 Z"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="4"/>
+
+  <!-- 帝·四芒星 -->
+  <path d="M512 345 L560 457 L672 505 L560 553 L512 665 L464 553 L352 505 L464 457 Z"
+        fill="url(#starGrad)"/>
+  <circle cx="512" cy="505" r="150" fill="#F2B23E" opacity="0.14"/>
+
+  <!-- 边缘高光 -->
+  <rect x="1" y="1" width="1022" height="1022" rx="223" ry="223"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="2"/>
+</svg>
