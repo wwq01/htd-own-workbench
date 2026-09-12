@@ -12,10 +12,17 @@
  * 顺带解决了产物文件名含中文的问题。
  *
  * 用法：
- *   node backend/scripts/prepare-tauri-sidecar.mjs [--input <path>] [--triple <triple>]
+ *   node backend/scripts/prepare-tauri-sidecar.mjs [--input <path>] [--triple <triple>] [--strict]
  *
  * 未安装 Rust 时也能跑：target triple 会回落到平台默认值（仅用于准备文件，
  * 真正打包前建议装好 rustc 以取得准确的 host-tuple）。
+ *
+ * 容错策略：
+ *   - 默认（非 --strict）：若 pkg 源 exe 不存在，但有已就位的 sidecar（如
+ *     cargo build 编译验证用的占位二进制），则保留并告警、以 0 退出，
+ *     让 `cargo build` 能顺利走到 Rust 编译（externalBin 嵌入合法 PE 即可）。
+ *   - --strict：源 exe 缺失时直接报错退出（生产 `tauri build` 用，避免把
+ *     占位后端打进安装包）。
  */
 import fs from 'fs';
 import path from 'path';
@@ -29,10 +36,11 @@ const SIDECAR_NAME = 'htd-backend';
 const OUT_DIR = path.join(repoRoot, 'src-tauri', 'binaries');
 
 function parseArgs(argv) {
-  const args = { input: null, triple: null };
+  const args = { input: null, triple: null, strict: false };
   for (let i = 2; i < argv.length; i += 1) {
     if (argv[i] === '--input') args.input = argv[i + 1];
     if (argv[i] === '--triple') args.triple = argv[i + 1];
+    if (argv[i] === '--strict') args.strict = true;
   }
   return args;
 }
@@ -61,23 +69,48 @@ function defaultInput() {
     : path.join(repoRoot, 'build', '荒天帝工作台-macos');
 }
 
+/** 确保 frontend/dist 存在：tauri_build 在编译期嵌入 frontendDist，缺失会直接失败。
+ *  仅在 dist/index.html 不存在时才跑 vite build，避免每次 tauri dev/build 都重建。 */
+function ensureFrontendDist() {
+  const indexHtml = path.join(repoRoot, 'frontend', 'dist', 'index.html');
+  if (fs.existsSync(indexHtml)) return;
+  console.log('[prepare-tauri-sidecar] frontend/dist 缺失，构建前端 (vite build) ...');
+  execSync('npm run build', {
+    cwd: path.join(repoRoot, 'frontend'),
+    stdio: 'inherit',
+  });
+}
+
 function main() {
+  ensureFrontendDist();
   const args = parseArgs(process.argv);
   const input = path.resolve(args.input || defaultInput());
   const { triple, source } = args.triple
     ? { triple: args.triple, source: '--triple' }
     : detectTriple();
 
-  if (!fs.existsSync(input)) {
-    console.error(`[prepare-tauri-sidecar] 找不到 pkg 产物：${input}`);
-    console.error('请先构建单文件后端：');
-    console.error('  cd backend && npm run build:win   # Windows');
-    console.error('  cd backend && npm run build:mac   # macOS');
-    process.exit(1);
-  }
-
   const ext = process.platform === 'win32' ? '.exe' : '';
   const outFile = path.join(OUT_DIR, `${SIDECAR_NAME}-${triple}${ext}`);
+
+  if (!fs.existsSync(input)) {
+    // 源 exe 缺失：先看是否已有可复用的 sidecar（占位/上次产物）
+    if (fs.existsSync(outFile)) {
+      console.warn(`[prepare-tauri-sidecar] 跳过：pkg 源 exe 不存在（${input}）`);
+      console.warn(`  但已存在 sidecar ${path.relative(repoRoot, outFile)}，保留之（cargo build 编译验证可用）。`);
+      console.warn('  （生产打包前请先 `npm run build:win` 生成真实后端，再用 --strict 重跑。）');
+      return; // 非 strict：以 0 退出，让编译继续
+    }
+    if (args.strict) {
+      console.error(`[prepare-tauri-sidecar][strict] 找不到 pkg 产物：${input}`);
+      console.error('请先构建单文件后端：');
+      console.error('  cd backend && npm run build:win   # Windows');
+      console.error('  cd backend && npm run build:mac   # macOS');
+      process.exit(1);
+    }
+    console.error(`[prepare-tauri-sidecar] 找不到 pkg 源 exe（${input}），且无已就位 sidecar：${outFile}`);
+    console.error('请先构建单文件后端，或手动放置占位 sidecar。');
+    process.exit(1);
+  }
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.copyFileSync(input, outFile);

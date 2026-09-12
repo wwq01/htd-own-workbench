@@ -95,8 +95,8 @@ fn main() {
                                 let Some(url) = value.get("url").and_then(|u| u.as_str()) else {
                                     continue;
                                 };
-                                // 若 navigate 要求 Url 类型，改为 url.parse().unwrap()
-                                let _ = ready_window.navigate(url.to_string());
+                                let parsed: tauri::Url = url.parse().expect("HTD_READY 中的 url 非法");
+                                let _ = ready_window.navigate(parsed);
                                 let _ = ready_window.show();
                                 let _ = ready_window.set_focus();
                                 break;

@@ -5,7 +5,9 @@
   "identifier": "com.htd.workbench",
   "build": {
     "beforeDevCommand": "node ../backend/scripts/prepare-tauri-sidecar.mjs",
-    "beforeBuildCommand": "node ../backend/scripts/prepare-tauri-sidecar.mjs"
+    "beforeBuildCommand": "node ../backend/scripts/prepare-tauri-sidecar.mjs",
+    "devUrl": "http://localhost:17388",
+    "frontendDist": "../frontend/dist"
   },
   "app": {
     "windows": [
