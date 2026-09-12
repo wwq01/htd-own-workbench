@@ -55,7 +55,26 @@ jobs:
         run: npm install -g @tauri-apps/cli@2
 
       - name: Tauri build (cargo compile + nsis bundle)
-        run: tauri build
+        shell: bash
+        run: |
+          tauri build 2>&1 | tee build.log
+          exit "${PIPESTATUS[0]}"
+
+      # GitHub 的 Actions 日志与产物下载都要鉴权，本地（无 MinGW）又无法复现编译错误。
+      # CI 自己有仓库写权限，故失败时把完整构建日志提交到 ci-logs 分支，
+      # 本地 `git fetch origin ci-logs` 即可取出排查。
+      - name: Publish build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B ci-logs
+          mkdir -p logs
+          if [ -s build.log ]; then cp build.log "logs/build-${GITHUB_RUN_ID}.log"; else echo "(build.log 为空或缺失)" > "logs/build-${GITHUB_RUN_ID}.log"; fi
+          git add -f logs/
+          git commit -m "ci: build log for run ${GITHUB_RUN_ID}"
+          git push --force origin ci-logs
 
       - name: Upload NSIS installer
         if: success()

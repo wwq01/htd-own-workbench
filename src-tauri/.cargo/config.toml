@@ -1,8 +1,17 @@
 # S3-1 本地 GNU target 编译所需工具链配置
 #
 # 仅对 x86_64-pc-windows-gnu 生效；CI 用 MSVC target，本段被忽略，无副作用。
-# 前提：MinGW-w64 (winlibs) 的 bin 目录已加入 PATH（见 src-tauri/build-tauri.sh）。
-# cargo 默认 gnu linker 在本机找不到 cc，显式指向 MinGW 的 triple-prefixed 工具链。
+#
+# ⚠️ 踩坑记录（2026-09-13）：曾经在这里写 `linker = "x86_64-w64-mingw32-gcc"`，
+# 于是必须先下载 105MB 的 MinGW-w64（winlibs）——而本机到 GitHub release 的链路
+# 极不稳定，续传 40 次均为 0 字节，白白耗掉几小时。
+#
+# 实际上 **完全不需要 MinGW**：Rust 工具链自带 `rust-lld`（在
+# ~/.rustup/toolchains/<ver>/lib/rustlib/x86_64-pc-windows-gnu/bin/rust-lld.exe），
+# 用 `-Clink-self-contained=yes` 即可让 rustc 自包含链接（含 libgcc/libwinpthread），
+# 已实测 `rustc -Clink-self-contained=yes t.rs` 能产出可执行的 exe。
+#
+# 注意：`-Clinker-flavor=gnu-lld`、`-Clink-self-contained=+linker` 都是 **unstable**，
+# 稳定版 rustc 会拒绝；只有 `-Clink-self-contained=yes` 是稳定可用的写法。
 [target.x86_64-pc-windows-gnu]
-linker = "x86_64-w64-mingw32-gcc"
-ar = "x86_64-w64-mingw32-gcc-ar"
+rustflags = ["-Clink-self-contained=yes"]
