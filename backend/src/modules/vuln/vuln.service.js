@@ -14,6 +14,7 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { VULN_FIX_STATUS, VULN_FIX_STATUS_TRANSITIONS, SEVERITY } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { resolveStateMachine } from '../system/fieldConfig.service.js';
 import prisma from '../../database/prisma.js';
 
 /** S1-5：资产分组持久化键（原存 localStorage，清缓存即丢，违反数据自主） */
@@ -119,7 +120,12 @@ class VulnService {
     if (!exists) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '漏洞不存在');
     }
-    const sm = createStateMachine({ name: 'VulnFixStatus', ALLOWED_TRANSITIONS: VULN_FIX_STATUS_TRANSITIONS });
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('vuln.fixStatus', {
+      states: Object.values(VULN_FIX_STATUS),
+      transitions: VULN_FIX_STATUS_TRANSITIONS,
+    });
+    const sm = createStateMachine({ name: 'VulnFixStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.fixStatus, toStatus);
     const updated = await vulnRepository.updateById(id, { fixStatus: toStatus });
     return this.toPublic(updated);

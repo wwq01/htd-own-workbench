@@ -14,6 +14,7 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { REVIEW_TYPE, REVIEW_STATUS, REVIEW_STATUS_TRANSITIONS } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { resolveStateMachine } from '../system/fieldConfig.service.js';
 import { getWeekKey, startOfWeek, endOfWeek, formatDate, today } from '../../common/utils/date.js';
 
 class ReviewService {
@@ -67,7 +68,12 @@ class ReviewService {
     if (!exists) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '复盘不存在');
     }
-    const sm = createStateMachine({ name: 'ReviewStatus', ALLOWED_TRANSITIONS: REVIEW_STATUS_TRANSITIONS });
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('review.status', {
+      states: Object.values(REVIEW_STATUS),
+      transitions: REVIEW_STATUS_TRANSITIONS,
+    });
+    const sm = createStateMachine({ name: 'ReviewStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.status, REVIEW_STATUS.SUBMITTED);
     await reviewRepository.updateById(id, { status: REVIEW_STATUS.SUBMITTED });
     const sourceType = this._deriveVaultSourceType(exists);
@@ -90,7 +96,12 @@ class ReviewService {
     if (!exists) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '复盘不存在');
     }
-    const sm = createStateMachine({ name: 'ReviewStatus', ALLOWED_TRANSITIONS: REVIEW_STATUS_TRANSITIONS });
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('review.status', {
+      states: Object.values(REVIEW_STATUS),
+      transitions: REVIEW_STATUS_TRANSITIONS,
+    });
+    const sm = createStateMachine({ name: 'ReviewStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.status, REVIEW_STATUS.PRECIPITATED);
     await reviewRepository.updateById(id, { status: REVIEW_STATUS.PRECIPITATED });
     const sourceType = this._deriveVaultSourceType(exists);

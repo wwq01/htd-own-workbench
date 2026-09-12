@@ -15,6 +15,7 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { EMERGENCY_STATUS, EMERGENCY_STATUS_TRANSITIONS, SEVERITY } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { resolveStateMachine } from '../system/fieldConfig.service.js';
 
 class IncidentService {
   /**
@@ -142,7 +143,12 @@ class IncidentService {
     if (!exists) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '应急记录不存在');
     }
-    const sm = createStateMachine({ name: 'EmergencyStatus', ALLOWED_TRANSITIONS: EMERGENCY_STATUS_TRANSITIONS });
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('incident.status', {
+      states: Object.values(EMERGENCY_STATUS),
+      transitions: EMERGENCY_STATUS_TRANSITIONS,
+    });
+    const sm = createStateMachine({ name: 'EmergencyStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.status, toStatus);
     const updated = await incidentRepository.updateById(id, { status: toStatus });
     return this.toPublic(updated);

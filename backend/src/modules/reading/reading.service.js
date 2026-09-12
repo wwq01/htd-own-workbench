@@ -15,7 +15,10 @@ import { ErrorCodes } from '../../common/constants/index.js';
 import { READING_STATUS, READING_STATUS_TRANSITIONS, READING_TYPE } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
 import { parseFieldsParam, pickFields } from '../../lib/fieldSelector.js';
-import { ensureFieldConfigCache, getStateMachineSync } from '../system/fieldConfig.service.js';
+import {
+  ensureFieldConfigCache,
+  resolveStateMachine,
+} from '../system/fieldConfig.service.js';
 
 function parseJsonArray(str, fallback = []) {
   if (!str) return fallback;
@@ -136,11 +139,11 @@ class ReadingService {
    */
   async changeStatus(id, toStatus) {
     readingIdSchema.parse({ id });
-    // 状态机迁移表取自配置平台（§8.3），未配置时回落默认常量
-    await ensureFieldConfigCache();
-    const smConfig = getStateMachineSync('reading.status');
-    const states = smConfig?.states || Object.values(READING_STATUS);
-    const transitions = smConfig?.transitions || READING_STATUS_TRANSITIONS;
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { states, transitions } = await resolveStateMachine('reading.status', {
+      states: Object.values(READING_STATUS),
+      transitions: READING_STATUS_TRANSITIONS,
+    });
     if (!states.includes(toStatus)) {
       throw new BusinessError(ErrorCodes.PARAM_ERROR, `非法的阅读状态「${toStatus}」`);
     }

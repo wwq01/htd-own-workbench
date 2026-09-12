@@ -11,6 +11,20 @@ import {
   READING_STATUS,
   READING_STATUS_TRANSITIONS,
   TODO_CATEGORY,
+  TODO_STATUS,
+  TODO_STATUS_TRANSITIONS,
+  REVIEW_STATUS,
+  REVIEW_STATUS_TRANSITIONS,
+  POC_STATUS,
+  POC_STATUS_TRANSITIONS,
+  BID_STATUS,
+  BID_STATUS_TRANSITIONS,
+  VULN_FIX_STATUS,
+  VULN_FIX_STATUS_TRANSITIONS,
+  EMERGENCY_STATUS,
+  EMERGENCY_STATUS_TRANSITIONS,
+  RFP_ITEM_STATUS,
+  RFP_ITEM_STATUS_TRANSITIONS,
 } from '../../common/constants/enums.js';
 
 /**
@@ -51,6 +65,43 @@ function defaultConfig() {
         states: Object.values(PROJECT_PHASE),
         transitions: PROJECT_PHASE_TRANSITIONS,
         initial: PROJECT_PHASE.REQUIREMENT,
+      },
+      // S1-3：补全全部状态机域的种子，配置平台可统一查看/编辑；
+      // 未显式配置时业务侧回落同名 enums 常量，行为不变。
+      'todo.status': {
+        states: Object.values(TODO_STATUS),
+        transitions: TODO_STATUS_TRANSITIONS,
+        initial: TODO_STATUS.NOT_STARTED,
+      },
+      'review.status': {
+        states: Object.values(REVIEW_STATUS),
+        transitions: REVIEW_STATUS_TRANSITIONS,
+        initial: REVIEW_STATUS.DRAFT,
+      },
+      'poc.status': {
+        states: Object.values(POC_STATUS),
+        transitions: POC_STATUS_TRANSITIONS,
+        initial: POC_STATUS.DRAFT,
+      },
+      'bid.status': {
+        states: Object.values(BID_STATUS),
+        transitions: BID_STATUS_TRANSITIONS,
+        initial: BID_STATUS.DRAFT,
+      },
+      'vuln.fixStatus': {
+        states: Object.values(VULN_FIX_STATUS),
+        transitions: VULN_FIX_STATUS_TRANSITIONS,
+        initial: VULN_FIX_STATUS.OPEN,
+      },
+      'incident.status': {
+        states: Object.values(EMERGENCY_STATUS),
+        transitions: EMERGENCY_STATUS_TRANSITIONS,
+        initial: EMERGENCY_STATUS.OPEN,
+      },
+      'rfp.status': {
+        states: Object.values(RFP_ITEM_STATUS),
+        transitions: RFP_ITEM_STATUS_TRANSITIONS,
+        initial: RFP_ITEM_STATUS.TODO,
       },
     },
   };
@@ -140,6 +191,38 @@ export function getStateMachineSync(scope) {
   const configured = cache.loaded && cache.stateMachines ? cache.stateMachines[scope] : undefined;
   if (configured && typeof configured === 'object') return configured;
   return defaultConfig().stateMachines[scope] ?? null;
+}
+
+/**
+ * S1-3：状态机迁移表合法性校验
+ * 形态必须为 { [from]: string[] }；配置平台可能被写入半截/脏数据，
+ * 非法时一律回落到代码内默认常量，绝不把脏配置灌进状态机。
+ */
+function isTransitionMap(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return false;
+  return Object.keys(t).length > 0 && Object.values(t).every(Array.isArray);
+}
+
+/**
+ * S1-3 统一入口：解析状态机（配置优先，回落默认常量）
+ * @param {string} scope  例如 'bid.status'
+ * @param {{states: string[], transitions: object, initial?: string}} fallback 代码内默认值
+ * @returns {Promise<{states: string[], transitions: object, initial: string|undefined}>}
+ *
+ * 设计要点：未配置 / 配置非法时结果与传默认常量完全一致，故接入零回归；
+ * 一旦配置平台写入了某域，该域即以配置为准，消除「配置与代码双写」。
+ */
+export async function resolveStateMachine(scope, fallback) {
+  await ensureFieldConfigCache();
+  const cfg = getStateMachineSync(scope);
+  const states = cfg && Array.isArray(cfg.states) && cfg.states.length
+    ? cfg.states
+    : fallback.states;
+  const transitions = isTransitionMap(cfg && cfg.transitions)
+    ? cfg.transitions
+    : fallback.transitions;
+  const initial = (cfg && cfg.initial) || fallback.initial;
+  return { states, transitions, initial };
 }
 
 /** 重置缓存（测试用：模拟「缓存未装载」场景） */

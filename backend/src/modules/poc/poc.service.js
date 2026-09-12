@@ -13,6 +13,7 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { POC_STATUS, POC_STATUS_TRANSITIONS } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { resolveStateMachine } from '../system/fieldConfig.service.js';
 
 class PocService {
   /**
@@ -110,7 +111,12 @@ class PocService {
     if (!exists) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, 'POC 不存在');
     }
-    const sm = createStateMachine({ name: 'PocStatus', ALLOWED_TRANSITIONS: POC_STATUS_TRANSITIONS });
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('poc.status', {
+      states: Object.values(POC_STATUS),
+      transitions: POC_STATUS_TRANSITIONS,
+    });
+    const sm = createStateMachine({ name: 'PocStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.status, toStatus);
     const updated = await pocRepository.updateById(id, { status: toStatus });
     return this.toPublic(updated);

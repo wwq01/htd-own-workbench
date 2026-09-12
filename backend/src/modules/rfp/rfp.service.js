@@ -25,6 +25,7 @@ import {
   RFP_ITEM_STATUS_TRANSITIONS,
 } from '../../common/constants/enums.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { resolveStateMachine } from '../system/fieldConfig.service.js';
 
 class RfpItemService {
   /**
@@ -101,10 +102,12 @@ class RfpItemService {
     if ('evidence' in fields) updateData.evidence = this._serializeEvidence(fields.evidence);
     // status 允许随表单提交，但必须受状态机约束
     if ('status' in fields && fields.status !== exists.status) {
-      const sm = createStateMachine({
-        name: 'RfpItemStatus',
-        ALLOWED_TRANSITIONS: RFP_ITEM_STATUS_TRANSITIONS,
+      // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+      const { transitions } = await resolveStateMachine('rfp.status', {
+        states: Object.values(RFP_ITEM_STATUS),
+        transitions: RFP_ITEM_STATUS_TRANSITIONS,
       });
+      const sm = createStateMachine({ name: 'RfpItemStatus', ALLOWED_TRANSITIONS: transitions });
       await sm.transition(exists.status, fields.status);
       updateData.status = fields.status;
     }
@@ -137,10 +140,12 @@ class RfpItemService {
     if (!exists) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, 'RFP 条目不存在');
     }
-    const sm = createStateMachine({
-      name: 'RfpItemStatus',
-      ALLOWED_TRANSITIONS: RFP_ITEM_STATUS_TRANSITIONS,
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('rfp.status', {
+      states: Object.values(RFP_ITEM_STATUS),
+      transitions: RFP_ITEM_STATUS_TRANSITIONS,
     });
+    const sm = createStateMachine({ name: 'RfpItemStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.status, toStatus);
     return this.toPublic(await rfpItemRepository.updateById(id, { status: toStatus }));
   }

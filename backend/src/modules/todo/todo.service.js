@@ -13,6 +13,7 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { today, tomorrow } from '../../common/utils/date.js';
 import { createStateMachine } from '../../lib/stateMachine.js';
+import { resolveStateMachine } from '../system/fieldConfig.service.js';
 import { parseFieldsParam, pickFields } from '../../lib/fieldSelector.js';
 import { TODO_STATUS, TODO_STATUS_TRANSITIONS } from '../../common/constants/enums.js';
 import { ensureFieldConfigCache } from '../system/fieldConfig.service.js';
@@ -122,7 +123,12 @@ class TodoService {
     if (!exists) {
       throw new BusinessError(ErrorCodes.DB_NOT_FOUND, '待办不存在');
     }
-    const sm = createStateMachine({ name: 'TodoStatus', ALLOWED_TRANSITIONS: TODO_STATUS_TRANSITIONS });
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('todo.status', {
+      states: Object.values(TODO_STATUS),
+      transitions: TODO_STATUS_TRANSITIONS,
+    });
+    const sm = createStateMachine({ name: 'TodoStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.status, toStatus);
     const updateData = { status: toStatus };
     if (toStatus === 'completed') updateData.completedAt = new Date();
@@ -148,7 +154,12 @@ class TodoService {
     }
     const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
     const toDate = payload && DATE_RE.test(payload.toDate) ? payload.toDate : tomorrow();
-    const sm = createStateMachine({ name: 'TodoStatus', ALLOWED_TRANSITIONS: TODO_STATUS_TRANSITIONS });
+    // S1-3：迁移表取自配置平台，未配置/配置非法时回落默认常量
+    const { transitions } = await resolveStateMachine('todo.status', {
+      states: Object.values(TODO_STATUS),
+      transitions: TODO_STATUS_TRANSITIONS,
+    });
+    const sm = createStateMachine({ name: 'TodoStatus', ALLOWED_TRANSITIONS: transitions });
     await sm.transition(exists.status, 'delayed');
     return todoRepository.updateById(id, {
       status: 'delayed',
