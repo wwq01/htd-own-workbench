@@ -864,6 +864,27 @@ const useDataStore = Pinia.defineStore('data', {
     async deleteNote(id) {
       await htdApi.del(`/notes/${id}`);
     },
+
+    // ============ S2-5 RFP 条目级应答模块 ============
+    // 条目挂在投标下，同为子资源，不做 refreshAll
+    async fetchRfpItems(query = {}) {
+      return htdApi.get('/rfp-items', query);
+    },
+    async fetchRfpStats(bidId) {
+      return htdApi.get('/rfp-items/stats', { bidId });
+    },
+    async createRfpItem(payload) {
+      return htdApi.post('/rfp-items', payload);
+    },
+    async updateRfpItem(id, payload) {
+      return htdApi.put(`/rfp-items/${id}`, payload);
+    },
+    async deleteRfpItem(id) {
+      await htdApi.del(`/rfp-items/${id}`);
+    },
+    async changeRfpItemStatus(id, status) {
+      return htdApi.patch(`/rfp-items/${id}/status`, { status });
+    },
   },
 });
 

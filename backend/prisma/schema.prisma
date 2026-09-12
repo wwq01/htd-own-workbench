@@ -491,6 +491,30 @@ model BidArchive {
   @@map("bid_archives")
 }
 
+// ===== RFP 条目级应答（S2-5，软关联 bid_archives，无外键）=====
+model RfpItem {
+  id           String   @id @default(cuid())
+  bidId        String // 软关联 bid_archives.id（仅存 id，无外键/级联）
+  code         String? // 条目编号，例如 "3.2.1"
+  title        String // 条目标题 / 要求简述
+  requirement  String? // RFP 原文要求
+  response     String? // 应答内容
+  responseType String   @default("pending") // pending/full/partial/exceed/deviation/non
+  status       String   @default("todo") // todo/doing/done（应答进度）
+  owner        String? // 应答责任人
+  evidence     String   @default("[]") // 证据挂载 JSON 数组：[{ sourceType, sourceId, label }]
+  remark       String? // 备注
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@index([bidId])
+  @@index([status])
+  @@index([responseType])
+  @@map("bid_rfp_items")
+}
+
 // ===== 漏洞跟踪库（资产组隔离）=====
 model VulnTrack {
   id              String   @id @default(cuid())

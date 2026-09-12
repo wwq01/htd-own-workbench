@@ -268,6 +268,43 @@ export const BID_RESULT = {
   LOST: 'lost',
 };
 
+// ===== RFP 条目应答类型（S2-5 逐条应答）=====
+// 对齐投标实务：完全响应 / 部分响应 / 优于要求 / 偏离 / 不响应；pending 为占位
+export const RFP_RESPONSE_TYPE = {
+  PENDING: 'pending',
+  FULL: 'full',
+  PARTIAL: 'partial',
+  EXCEED: 'exceed',
+  DEVIATION: 'deviation',
+  NON: 'non',
+};
+
+// ===== RFP 条目应答进度 3 态（S2-5）=====
+export const RFP_ITEM_STATUS = {
+  TODO: 'todo',
+  DOING: 'doing',
+  DONE: 'done',
+};
+
+// RFP 条目 3 态合法迁移
+export const RFP_ITEM_STATUS_TRANSITIONS = {
+  todo: ['doing', 'done'],
+  doing: ['done', 'todo'],
+  done: ['doing'],
+};
+
+// 证据挂载来源类型（通用软关联，与 S2-4 Note 的 sourceType 同源设计，无外键）
+export const EVIDENCE_SOURCE_TYPE = {
+  VAULT: 'VAULT',
+  POC: 'POC',
+  VULN: 'VULN',
+  MEETING: 'MEETING',
+  NOTE: 'NOTE',
+  CONTRACT: 'CONTRACT',
+  DEPLOYMENT: 'DEPLOYMENT',
+  OTHER: 'OTHER',
+};
+
 // ===== 漏洞修复 5 态 =====
 export const VULN_FIX_STATUS = {
   OPEN: 'open',
