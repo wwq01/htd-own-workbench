@@ -43,12 +43,16 @@ async function startServer() {
     await connectDatabase();
 
     // 2.5 进程复用：若默认端口已有工作台实例在跑，直接打开浏览器复用，避免多进程写 SQLite 锁冲突
-    const existingInstance = await probeInstance(appConfig.port);
-    if (existingInstance) {
-      const url = `http://${appConfig.host}:${appConfig.port}`;
-      logger.info(`检测到已有工作台实例（${url}），复用进程，仅打开浏览器`);
-      openBrowser(url);
-      process.exit(0);
+    //     S3-0：桌面模式跳过——唯一实例由桌面壳的 single-instance 保证，
+    //     sidecar 若在此退出会被壳判定为「子进程异常终止」，反而拿不到端口。
+    if (!appConfig.desktop) {
+      const existingInstance = await probeInstance(appConfig.port);
+      if (existingInstance) {
+        const url = `http://${appConfig.host}:${appConfig.port}`;
+        logger.info(`检测到已有工作台实例（${url}），复用进程，仅打开浏览器`);
+        openBrowser(url);
+        process.exit(0);
+      }
     }
 
     // 3. 检测可用端口
@@ -56,6 +60,10 @@ async function startServer() {
     if (port !== appConfig.port) {
       logger.warn(`默认端口 ${appConfig.port} 被占用，已顺延至端口 ${port}`);
     }
+    // S3-0：把实际监听端口回写到配置。
+    // originGuard 的白名单读的是 appConfig.port，若不回写，端口顺延后
+    // 浏览器 Origin（实际端口）与白名单（配置端口）不一致，全部写入请求会被 403。
+    appConfig.port = port;
 
     // 4. 创建应用实例
     const app = createApp();
@@ -71,10 +79,27 @@ async function startServer() {
       logger.info(`  运行环境: ${appConfig.env}`);
       logger.info(`========================================`);
 
+      // S3-0：桌面模式以机器可读行告知壳实际端口（壳据此让 webview 加载对应地址）。
+      // 约定：单行 JSON，前缀 HTD_READY，末尾换行；壳用 /^HTD_READY (.+)$/ 解析。
+      if (appConfig.desktop) {
+        process.stdout.write(
+          `HTD_READY ${JSON.stringify({
+            port,
+            host: appConfig.host,
+            url,
+            apiPrefix: appConfig.apiPrefix,
+            dataRoot: appConfig.dataRoot,
+          })}\n`,
+        );
+      }
+
       // 自动打开浏览器（延迟 500ms 确保服务就绪）
-      setTimeout(() => {
-        openBrowser(url);
-      }, 500);
+      // S3-0：桌面模式下页面由壳内 webview 加载，不弹系统浏览器
+      if (!appConfig.desktop) {
+        setTimeout(() => {
+          openBrowser(url);
+        }, 500);
+      }
     });
 
     // 6. 优雅关闭

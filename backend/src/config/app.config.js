@@ -35,6 +35,13 @@ const appConfig = {
   // 服务端口
   port: parseInt(process.env.HTD_PORT, 10) || 17388,
 
+  // 运行模式：desktop = 被桌面壳（Tauri）以 sidecar 方式拉起
+  // 与普通启动的差异（S3-0 契约，详见 docs/产品迭代/S3-执行方案.md）：
+  //   1. 不自动打开系统浏览器（页面由壳内 webview 加载）
+  //   2. 不做「同端口已有实例则复用并退出」（由壳的 single-instance 保证唯一）
+  //   3. 监听就绪后向 stdout 输出机器可读的 HTD_READY 行，供壳读取实际端口
+  desktop: process.env.HTD_DESKTOP === '1' || process.env.HTD_DESKTOP === 'true',
+
   // 数据目录
   dataRoot: DATA_ROOT,
   dbDir: path.join(DATA_ROOT, 'data'),
