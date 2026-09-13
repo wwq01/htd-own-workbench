@@ -4,6 +4,7 @@
 import systemService from './system.service.js';
 import dataService from './data.service.js';
 import backupService from './backup.service.js';
+import remoteBackupService from './remote-backup.service.js';
 import settingsService from './settings.service.js';
 import fieldConfigService from './fieldConfig.service.js';
 
@@ -110,6 +111,43 @@ class SystemController {
   async getBackupStatus(req, res, next) {
     try {
       res.success(backupService.getStatus());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 异地备份状态（V2-2，默认关闭）
+   * GET /api/v1/system/backups/remote
+   * 注意：不返回 url / user / pass，仅回显目标类型与目录，避免凭据经 API 泄露。
+   */
+  async getRemoteBackupStatus(req, res, next) {
+    try {
+      res.success(remoteBackupService.getStatus());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 异地备份连通性自检
+   * POST /api/v1/system/backups/remote/check
+   */
+  async checkRemoteBackup(req, res, next) {
+    try {
+      res.success(await remoteBackupService.check());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * 立即同步一次异地备份（忽略「今日已同步」节流）
+   * POST /api/v1/system/backups/remote/sync
+   */
+  async syncRemoteBackup(req, res, next) {
+    try {
+      res.success(await remoteBackupService.syncLatest());
     } catch (err) {
       next(err);
     }

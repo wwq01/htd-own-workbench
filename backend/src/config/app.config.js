@@ -98,6 +98,25 @@ const appConfig = {
   // 使 req.ip 取到 X-Forwarded-For 真实客户端 IP（日志与限流准确）。
   trustProxy: isTruthy(process.env.HTD_TRUST_PROXY),
 
+  // 异地备份（V2-2，默认完全关闭）：把每日备份再推一份到本机之外。
+  //   仅当配置 HTD_REMOTE_BACKUP_TARGET 才启用；未配置时零网络请求、零行为变化。
+  //   解决的是「可用性」缺口——本地备份与数据库同盘，磁盘故障两者同时丢失，
+  //   而加密（V2-3）只保护机密性，不保护可用性。
+  remoteBackup: {
+    // 目标类型：local（本机其它盘/网络共享）| webdav（坚果云/群晖/Nextcloud 等）
+    target: (process.env.HTD_REMOTE_BACKUP_TARGET || '').trim().toLowerCase(),
+    // 远端目录名（local 与 webdav 通用），本应用只在该子目录内活动
+    dir: (process.env.HTD_REMOTE_BACKUP_DIR || 'htd-backups').trim(),
+    // 远端保留份数（仅清理每日备份，手动备份永久保留，与本地策略一致）
+    keep: parseInt(process.env.HTD_REMOTE_BACKUP_KEEP, 10) || 30,
+    // webdav：基地址、用户名、密码（密码绝不出现在日志与状态接口中）
+    url: (process.env.HTD_REMOTE_BACKUP_URL || '').trim(),
+    user: (process.env.HTD_REMOTE_BACKUP_USER || '').trim(),
+    pass: process.env.HTD_REMOTE_BACKUP_PASS || '',
+    // local：目标根路径（如 D:\ 之外的另一块盘，或 \\NAS\backup）
+    path: (process.env.HTD_REMOTE_BACKUP_PATH || '').trim(),
+  },
+
   // 应用版本
   version: '1.5.0',
 

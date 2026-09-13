@@ -22,6 +22,10 @@ router.post('/backups', systemController.createBackup);
 router.post('/backups/manual', systemController.createManualBackup);
 router.post('/backups/restore/:fileName', systemController.restoreBackup);
 router.get('/backups/status', systemController.getBackupStatus);
+// V2-2 异地备份（默认关闭）：状态 / 连通性自检 / 立即同步
+router.get('/backups/remote', systemController.getRemoteBackupStatus);
+router.post('/backups/remote/check', systemController.checkRemoteBackup);
+router.post('/backups/remote/sync', systemController.syncRemoteBackup);
 router.get('/backups/:fileName/download', systemController.downloadBackup);
 router.delete('/backups/:fileName', systemController.removeBackup);
 router.get('/settings', systemController.getSettings);

@@ -57,6 +57,7 @@ class BackupService {
     this.logger = deps.logger || logger;
     this.clock = deps.clock || (() => Date.now());
     this.prisma = deps.prisma || null; // 可选：恢复后 $disconnect 以重连新库
+    this.remote = deps.remote || null; // 可选：V2-2 异地备份服务（未注入则完全跳过）
     // 运行时备份状态（顶栏状态点数据源）
     this._status = { status: 'idle', error: null, at: null };
     this._failStreak = 0;
@@ -206,6 +207,21 @@ class BackupService {
     if (this.isDailyToday()) return;
     await this.createDailyBackup();
     this.pruneDailyBackups(DAILY_KEEP);
+    this._syncRemote();
+  }
+
+  /**
+   * 每日备份后异步触发异地同步（V2-2）。
+   * 刻意不 await：远端可能在 NAS/公网，网络抖动与超时绝不能拖慢写入请求。
+   * 同步内部的失败只写状态与日志，不会冒泡到这里。
+   */
+  _syncRemote() {
+    if (!this.remote || typeof this.remote.maybeSyncFireAndForget !== 'function') return;
+    try {
+      this.remote.maybeSyncFireAndForget();
+    } catch (e) {
+      this.logger.warn(`[备份] 异地同步启动失败: ${e.message}`);
+    }
   }
 
   isDailyToday() {

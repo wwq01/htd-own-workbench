@@ -14,6 +14,7 @@ import accessGuard from './middleware/access-guard.js';
 import { isOriginAllowed } from './common/utils/allowed-origins.js';
 import backupTrigger from './middleware/backup-trigger.js';
 import backupService from './modules/system/backup.service.js';
+import remoteBackupService from './modules/system/remote-backup.service.js';
 import prisma from './database/prisma.js';
 import systemRouter from './modules/system/system.router.js';
 import todoRouter from './modules/todo/todo.router.js';
@@ -80,6 +81,8 @@ function createApp() {
   app.use(backupTrigger);
   // 恢复备份后让 Prisma 断开并以新库重连
   backupService.prisma = prisma;
+  // V2-2 异地备份：默认关闭（未配置 target 时服务内部直接跳过，零网络请求）
+  backupService.remote = remoteBackupService;
 
   // ===== API 路由 =====
   app.use(`${appConfig.apiPrefix}/system`, systemRouter);

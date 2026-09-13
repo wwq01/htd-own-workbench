@@ -5,6 +5,7 @@ import createApp from './app.js';
 import { bootstrap } from './bootstrap.js';
 import { connectDatabase, disconnectDatabase } from './database/prisma.js';
 import { unlockDatabase, lockDatabase } from './database/vault.js';
+import remoteBackupService from './modules/system/remote-backup.service.js';
 import { findAvailablePort } from './common/utils/port.js';
 import { openBrowser } from './common/utils/browser.js';
 import appConfig from './config/app.config.js';
@@ -61,6 +62,12 @@ async function startServer() {
       lockDatabase(vaultState);
     };
     process.on('exit', lockOnce);
+
+    // V2-2：把主密码交给异地备份服务。启用加密后上传的必须是密文副本，
+    // 否则「本地加密、异地明文」会让 V2-3 的保护在数据离开本机时彻底失效。
+    if (vaultState.encrypted && vaultState.passphrase) {
+      remoteBackupService.setPassphrase(vaultState.passphrase);
+    }
 
     // 1. 启动自检
     await bootstrap();
