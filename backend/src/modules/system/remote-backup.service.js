@@ -34,6 +34,7 @@ import { ErrorCodes } from '../../common/constants/index.js';
 import { encryptFile } from '../../lib/crypto.js';
 
 const SQLITE_MAGIC = 'SQLite format 3\0'; // 16 字节文件头
+const ENVELOPE_MAGIC = 'HTD1'; // V2-3 加密信封文件头（见 lib/crypto.js）
 const DAILY_PREFIX = 'workbench_daily-';
 const DEFAULT_KEEP = 30;
 
@@ -257,7 +258,9 @@ class RemoteBackupService {
     const dir = this.appConfig.backupDir;
     if (!this.fs.existsSync(dir)) return null;
     const files = this.fs.readdirSync(dir)
-      .filter((f) => /^workbench_[^/\\]+\.db$/i.test(f))
+      // V2-3 配套：本地备份启用加密后产物是 .db.enc，必须一并认，
+      // 否则会「挑不到最新备份」而静默跳过上传——用户以为同步了，实则没有。
+      .filter((f) => /^workbench_[^/\\]+\.db(\.enc)?$/i.test(f))
       .map((f) => ({ f, stat: this.fs.statSync(this.path.join(dir, f)) }))
       // 次级排序用文件名而非仅 mtime：同一毫秒内创建的备份 mtime 相同，
       // 单纯按 mtime 排序结果不稳定（实测选到过非最新的一份）。
@@ -272,15 +275,33 @@ class RemoteBackupService {
   }
 
   _isSQLiteFile(filePath) {
+    return this._headEquals(filePath, SQLITE_MAGIC);
+  }
+
+  /**
+   * 校验信封文件头（"HTD1"）。用于本地备份已是密文的场景——
+   * 此时文件没有 SQLite 魔数头，只能校验它确实是本项目的加密信封。
+   * 不做全量解密校验：整个文件读入内存解密一次对大库不划算，
+   * 且「明文源有效」已由 backup.service 在加密前校验过（见其硬约束①）。
+   */
+  _isEnvelopeFile(filePath) {
+    return this._headEquals(filePath, ENVELOPE_MAGIC);
+  }
+
+  _headEquals(filePath, magic) {
     try {
       const fd = this.fs.openSync(filePath, 'r');
-      const buf = Buffer.alloc(16);
-      this.fs.readSync(fd, buf, 0, 16, 0);
+      const buf = Buffer.alloc(magic.length);
+      this.fs.readSync(fd, buf, 0, magic.length, 0);
       this.fs.closeSync(fd);
-      return buf.toString('latin1') === SQLITE_MAGIC;
+      return buf.toString('latin1') === magic;
     } catch (_) {
       return false;
     }
+  }
+
+  _isValidBackupFile(filePath) {
+    return this._isEnvelopeFile(filePath) || this._isSQLiteFile(filePath);
   }
 
   // ===== 对外能力 =====
@@ -294,7 +315,7 @@ class RemoteBackupService {
     if (!this.isEnabled()) return { skipped: true, reason: 'disabled' };
     const latest = this._newestBackupFile();
     if (!latest) return { skipped: true, reason: 'no-local-backup' };
-    if (!this._isSQLiteFile(latest.filePath)) {
+    if (!this._isValidBackupFile(latest.filePath)) {
       this._setStatus('error', '最新本地备份损坏，已跳过上传', null);
       throw new BusinessError(
         ErrorCodes.BACKUP_CORRUPTED,
@@ -302,7 +323,10 @@ class RemoteBackupService {
       );
     }
     const cfg = this._cfg();
-    const encrypted = !!this.passphrase;
+    // 本地备份可能已经是密文（V2-3 启用后 backup.service 直接产出 .db.enc）。
+    // 此时必须原样上传——再加密一次会形成双信封，恢复时解一层仍是密文，等于备份不可用。
+    const alreadyEncrypted = latest.fileName.toLowerCase().endsWith('.enc');
+    const encrypted = !!this.passphrase && !alreadyEncrypted;
     const remoteName = encrypted ? `${latest.fileName}.enc` : latest.fileName;
     // 加密副本落在数据目录内的临时文件，用完即删；绝不留在磁盘上形成第二份明文
     const tmpPath = encrypted
@@ -327,7 +351,7 @@ class RemoteBackupService {
       }
     }
     this._setStatus('success', null, remoteName);
-    return { uploaded: remoteName, size: latest.size, encrypted };
+    return { uploaded: remoteName, size: latest.size, encrypted: alreadyEncrypted || encrypted };
   }
 
   /**

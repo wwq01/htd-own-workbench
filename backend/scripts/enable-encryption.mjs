@@ -5,7 +5,12 @@
  *   node backend/scripts/enable-encryption.mjs                # 启用（交互设置主密码）
  *   node backend/scripts/enable-encryption.mjs --password xxx # 非交互（口令会进 shell 历史，慎用）
  *   node backend/scripts/enable-encryption.mjs --verify       # 校验口令能否解开
+ *   node backend/scripts/enable-encryption.mjs --encrypt-backups # 把历史明文备份批量转密文
  *   node backend/scripts/enable-encryption.mjs --disable      # 回滚为明文库
+ *
+ * 为什么需要 `--encrypt-backups`：
+ *   启用加密**不会**自动改写此前已存在的明文备份。若不管它们，备份目录里仍躺着
+ *   可直接读走的完整数据副本，等于加密只锁了前门。启用加密后必须跑一次这个子命令。
  *
  * 与 vault.js 一致的三条数据安全约束：
  * 1. 加密前必定先备份明文库为 `workbench.db.bak-<时间戳>`
@@ -96,6 +101,10 @@ async function enable() {
   console.log('   常驻部署：设置环境变量 HTD_DB_PASSPHRASE 后用 deploy/start.cmd / start.sh 启动');
   console.log('   校验口令：node backend/scripts/enable-encryption.mjs --verify');
   console.log('   回滚明文：node backend/scripts/enable-encryption.mjs --disable');
+  console.log('');
+  // 历史明文备份不会自动改写，必须显式跑一次，否则备份目录仍是完整明文副本
+  console.log('⚠️ 启用前已有的明文备份尚未加密，请立即执行：');
+  console.log('   node backend/scripts/enable-encryption.mjs --encrypt-backups');
 }
 
 async function disable() {
@@ -134,6 +143,74 @@ async function disable() {
   console.log(`原密文库已重命名为 ${disabled}，确认无误后可手工删除`);
 }
 
+/**
+ * 把备份目录里既有的明文备份批量转成密文 `.db.enc`。
+ *
+ * 安全顺序（与 vault.js 同源）：写 `.enc.tmp` → 往返校验 → rename 就位 → 才删明文。
+ * 任何一份失败都不影响其它份，失败清单会列出并让进程以非 0 退出。
+ */
+async function encryptBackups() {
+  const dir = appConfig.backupDir;
+  if (!fs.existsSync(dir)) {
+    console.error(`备份目录不存在：${dir}`);
+    process.exit(1);
+  }
+  const password = await askPassword(false);
+  const plains = fs.readdirSync(dir).filter((f) => /^workbench_[^/\\]+\.db$/i.test(f));
+  if (!plains.length) {
+    console.log('没有需要加密的明文备份（已经是密文或目录为空）');
+    return;
+  }
+
+  console.log(`发现 ${plains.length} 份明文备份，开始转换（原文件在密文校验通过后才删除）`);
+  const failed = [];
+  let ok = 0;
+  for (const f of plains) {
+    const src = path.join(dir, f);
+    const target = path.join(dir, `${f}.enc`);
+    if (fs.existsSync(target)) {
+      console.log(`  跳过（已存在密文）：${f}`);
+      continue;
+    }
+    const tmp = `${target}.tmp`;
+    try {
+      const head = fs.readFileSync(src).subarray(0, 15).toString('ascii');
+      if (head !== 'SQLite format 3') {
+        // 损坏文件不加密也不删除：留给用户人工判断，避免「加密后看起来正常」的假象
+        failed.push(`${f}：不是合法 SQLite 文件，已跳过（未改动）`);
+        continue;
+      }
+      encryptFile(src, tmp, password);
+      decrypt(fs.readFileSync(tmp), password); // 往返校验
+      fs.renameSync(tmp, target);
+      fs.unlinkSync(src); // 密文已就位才删明文
+      // meta 文件名与明文时期相同（.db/.db.enc 共用 xxx.meta.json），原地补标记即可
+      const metaPath = path.join(dir, f.replace(/\.db$/i, '.meta.json'));
+      if (fs.existsSync(metaPath)) {
+        try {
+          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+          meta.encrypted = true;
+          fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+        } catch (e) {
+          console.log(`  警告：${f} 的 meta 更新失败（不影响备份本身）：${e.message}`);
+        }
+      }
+      ok += 1;
+      console.log(`  已加密：${f} → ${f}.enc`);
+    } catch (error) {
+      try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch (_) { /* ignore */ }
+      failed.push(`${f}：${error.message}`);
+    }
+  }
+
+  console.log(`\n完成：${ok} 份已转为密文`);
+  if (failed.length) {
+    console.error(`失败 ${failed.length} 份（明文原样保留，未丢失）：`);
+    for (const line of failed) console.error(`  - ${line}`);
+    process.exit(1);
+  }
+}
+
 async function verify() {
   if (!fs.existsSync(encPath)) {
     console.error('未启用加密（未找到 .enc 文件）');
@@ -155,4 +232,5 @@ console.log(`当前状态：${fs.existsSync(encPath) ? '已加密' : '未加密'
 
 if (flag('--disable')) await disable();
 else if (flag('--verify')) await verify();
+else if (flag('--encrypt-backups')) await encryptBackups();
 else await enable();

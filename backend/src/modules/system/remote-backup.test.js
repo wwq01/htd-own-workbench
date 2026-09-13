@@ -15,7 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { createRemoteBackupService } from './remote-backup.service.js';
-import { decryptFile } from '../../lib/crypto.js';
+import { decryptFile, encrypt } from '../../lib/crypto.js';
 
 const MAGIC = 'SQLite format 3\0';
 let tmpRoots = [];
@@ -307,5 +307,46 @@ describe('remote-backup · 与 V2-3 加密协同', () => {
     expect(svc.getStatus().encrypted).toBe(false);
     svc.setPassphrase('pw');
     expect(svc.getStatus().encrypted).toBe(true);
+  });
+
+  it('本地备份已是 .db.enc 时原样上传，绝不二次加密（双信封会让备份解不开）', async () => {
+    const { root, backupDir } = makeRoot();
+    // 模拟 V2-3 本地加密后的产物：内容为「SQLite 明文」的信封
+    const plainDb = Buffer.concat([Buffer.from(MAGIC, 'latin1'), Buffer.alloc(64, 1)]);
+    const localEnc = path.join(backupDir, 'workbench_daily-20260913_010000.db.enc');
+    fs.writeFileSync(localEnc, encrypt(plainDb, 'master-pw-2026'));
+    const remotePath = path.join(root, 'remote');
+    const svc = createRemoteBackupService({
+      appConfig: cfgOf(backupDir, root, { target: 'local', path: remotePath }),
+    });
+    svc.setPassphrase('master-pw-2026');
+
+    const res = await svc.uploadLatest();
+    // 文件名保持不变（未再加一层 .enc），且标记为已加密
+    expect(res.uploaded).toBe('workbench_daily-20260913_010000.db.enc');
+    expect(res.encrypted).toBe(true);
+
+    // 关键断言：解一层必须直接得到有效 SQLite。若被二次加密，这里拿到的是内层信封而非数据库。
+    const out = path.join(root, 'decrypted.db');
+    decryptFile(path.join(remotePath, 'htd-backups', res.uploaded), out, 'master-pw-2026');
+    const got = fs.readFileSync(out);
+    expect(got.subarray(0, 16).toString('latin1')).toBe(MAGIC);
+    expect(got.equals(plainDb)).toBe(true);
+  });
+
+  it('本地 .db.enc 不是合法信封时拒绝上传（不把坏密文推上远端）', async () => {
+    const { root, backupDir } = makeRoot();
+    fs.writeFileSync(
+      path.join(backupDir, 'workbench_daily-20260913_010000.db.enc'),
+      Buffer.from('XXXX this is neither sqlite nor envelope'),
+    );
+    const remotePath = path.join(root, 'remote');
+    const svc = createRemoteBackupService({
+      appConfig: cfgOf(backupDir, root, { target: 'local', path: remotePath }),
+    });
+    svc.setPassphrase('master-pw-2026');
+
+    await expect(svc.uploadLatest()).rejects.toThrow(/跳过异地上传/);
+    expect(fs.existsSync(path.join(remotePath, 'htd-backups'))).toBe(false);
   });
 });

@@ -16,6 +16,16 @@
  *
  * 依赖注入：所有外部依赖（fs / path / appConfig / eventBus / logger / clock / prisma）
  * 均通过构造参数注入，便于单元测试用 mock 替换（5.3e.5 Runner 工厂思想）。
+ *
+ * ── V2-3 配套：备份静态加密 ──
+ * 启用数据库加密后，若备份仍是明文副本，等于「锁了前门、开了后门」——
+ * 任何人拿到备份目录即可读走全部数据，V2-3 的保护形同虚设。故接入规则：
+ *   - 注入主密码（server.js 解锁后 setPassphrase）→ 备份产物为 `<name>.db.enc` 密文信封
+ *   - 未注入主密码（未启用加密）→ 产物仍是 `<name>.db` 明文，**行为与之前完全一致**
+ * 硬约束：
+ *   1. 加密必须在「明文副本已校验为有效 SQLite」之后进行，避免把损坏库封进信封。
+ *   2. 明文副本落在备份目录内的临时文件，加密成功即删；不在磁盘留下第二份明文。
+ *   3. 恢复密文备份必须有主密码，缺密码显式报错，绝不降级为「跳过/明文读取」。
  */
 import path from 'path';
 import fs from 'fs';
@@ -25,18 +35,25 @@ import { BusinessError } from '../../common/error.js';
 import { ErrorCodes } from '../../common/constants/index.js';
 import { eventBus } from '../../lib/observable.js';
 import logger from '../../common/logger.js';
+import { encrypt, decrypt } from '../../lib/crypto.js';
 
 const APP_SCHEMA_VERSION = 2; // V1.2 起备份版本标记
 const SQLITE_MAGIC = 'SQLite format 3\0'; // 16 字节文件头
 const DAILY_KEEP = 30;
+const ENC_SUFFIX = '.enc'; // 加密备份后缀：workbench_xxx.db.enc
 
 /**
- * 安全文件名：仅允许 workbench_*.db，且不含路径分隔符（防遍历）
+ * 安全文件名：仅允许 workbench_*.db 或 workbench_*.db.enc，且不含路径分隔符（防遍历）
  */
 function isSafeBackupFileName(fileName) {
   return typeof fileName === 'string'
-    && /^workbench_[^/\\]+\.db$/i.test(fileName)
+    && /^workbench_[^/\\]+\.db(\.enc)?$/i.test(fileName)
     && path.basename(fileName) === fileName;
+}
+
+/** 备份文件是否为密文信封 */
+function isEncryptedName(fileName) {
+  return typeof fileName === 'string' && fileName.toLowerCase().endsWith(ENC_SUFFIX);
 }
 
 /**
@@ -58,9 +75,23 @@ class BackupService {
     this.clock = deps.clock || (() => Date.now());
     this.prisma = deps.prisma || null; // 可选：恢复后 $disconnect 以重连新库
     this.remote = deps.remote || null; // 可选：V2-2 异地备份服务（未注入则完全跳过）
+    // V2-3 主密码：非空 ⇒ 备份产物为密文信封。由 server.js 解锁数据库后注入。
+    this.passphrase = deps.passphrase || '';
     // 运行时备份状态（顶栏状态点数据源）
     this._status = { status: 'idle', error: null, at: null };
     this._failStreak = 0;
+  }
+
+  /**
+   * 注入主密码（V2-3）。注入后新建的备份即为密文；未注入时行为与旧版完全一致。
+   */
+  setPassphrase(passphrase) {
+    this.passphrase = typeof passphrase === 'string' ? passphrase : '';
+  }
+
+  /** 当前是否产出加密备份 */
+  _encryptActive() {
+    return !!this.passphrase;
   }
 
   // ===== 内部工具 =====
@@ -74,7 +105,8 @@ class BackupService {
   }
 
   _metaPath(fileName) {
-    return this.path.join(this._backupDir(), fileName.replace(/\.db$/, '.meta.json'));
+    // 同时兼容明文 `.db` 与密文 `.db.enc`
+    return this.path.join(this._backupDir(), fileName.replace(/\.db(\.enc)?$/i, '.meta.json'));
   }
 
   _writeMeta(fileName, meta) {
@@ -152,24 +184,71 @@ class BackupService {
     this.fs.copyFileSync(this.appConfig.dbPath, filePath);
   }
 
+  /**
+   * 产出加密备份：明文副本 → 校验 → 加密成 .db.enc → 删除明文副本。
+   * 明文副本只存在于本次调用期间，且落在备份目录内（不扩散到其它位置）。
+   *
+   * @param {boolean} verify 是否校验源为有效 SQLite。恢复前的「安全快照」传 false：
+   *   快照的目的是可回退，主库本身损坏时恰恰最需要继续恢复，不能因校验失败而阻断。
+   */
+  async _copyMainEncryptedTo(filePath, base, verify = true) {
+    if (!this.fs.existsSync(this.appConfig.dbPath)) {
+      throw new BusinessError(ErrorCodes.FILE_NOT_FOUND, '数据库文件不存在，暂时无法备份');
+    }
+    this._ensureDir(this.path.dirname(filePath));
+    const tmpPlain = this.path.join(this._backupDir(), `.tmp-${base}.db`);
+    try {
+      this.fs.copyFileSync(this.appConfig.dbPath, tmpPlain);
+      // 硬约束①：先确认源是有效 SQLite 再加密，绝不把损坏库封成「看起来正常」的信封
+      if (verify && !this._isSQLiteFile(tmpPlain)) {
+        throw new BusinessError(
+          ErrorCodes.BACKUP_CORRUPTED,
+          '数据库文件校验失败，已中止备份（未产出备份文件）',
+        );
+      }
+      // 走「注入 fs 读 + 内存加解密 + 注入 fs 写」而非 crypto 的 encryptFile：
+      // encryptFile 内部直连真实 fs，会绕过本服务的依赖注入，使加密路径无法单测。
+      // 开销与 encryptFile 相同（它同样整文件读入），故无性能代价。
+      const envelope = encrypt(this.fs.readFileSync(tmpPlain), this.passphrase);
+      this.fs.writeFileSync(filePath, envelope);
+    } finally {
+      try {
+        if (this.fs.existsSync(tmpPlain)) this.fs.unlinkSync(tmpPlain);
+      } catch (e) {
+        this.logger.warn(`[备份] 清理明文临时副本失败 ${tmpPlain}: ${e.message}`);
+      }
+    }
+  }
+
   async _createWithPrefix(prefix, note) {
     const date = new Date(this.clock());
     const base = note ? `${prefix}${note}-${stamp(date)}` : `${prefix}${stamp(date)}`;
-    let fileName = `${base}.db`;
+    const encrypted = this._encryptActive();
+    const ext = encrypted ? `.db${ENC_SUFFIX}` : '.db';
+    let fileName = `${base}${ext}`;
     let i = 1;
     while (this.fs.existsSync(this.path.join(this._backupDir(), fileName))) {
-      fileName = `${base}_${i++}.db`;
+      fileName = `${base}_${i++}${ext}`;
     }
     const filePath = this.path.join(this._backupDir(), fileName);
     try {
       this._setStatus('pending');
-      await this._copyMainTo(filePath);
+      if (encrypted) {
+        await this._copyMainEncryptedTo(filePath, base);
+      } else {
+        await this._copyMainTo(filePath);
+      }
       const type = prefix.startsWith('workbench_daily') ? 'daily' : 'manual';
-      this._writeMeta(fileName, { type, note: note || null, createdAt: new Date(this.clock()).toISOString() });
+      this._writeMeta(fileName, {
+        type,
+        note: note || null,
+        encrypted,
+        createdAt: new Date(this.clock()).toISOString(),
+      });
       const stat = this.fs.statSync(filePath);
       this._setStatus('success');
-      this.eventBus.emit('backup:created', { fileName, type });
-      return this._describe(fileName, stat, type, note);
+      this.eventBus.emit('backup:created', { fileName, type, encrypted });
+      return this._describe(fileName, stat, type, note, null, encrypted);
     } catch (e) {
       this._setStatus('error', e.message);
       if (e instanceof BusinessError) throw e;
@@ -227,8 +306,10 @@ class BackupService {
   isDailyToday() {
     const today = stamp(new Date(this.clock())).slice(0, 8);
     const prefix = `workbench_daily-${today}`;
+    // 明文 .db 与密文 .db.enc 都算「今天已备份」——
+    // 加密开关切换期间两种产物可能并存，漏认任何一种都会导致重复备份。
     return this.fs.readdirSync(this._backupDir())
-      .some((f) => f.startsWith(prefix) && f.endsWith('.db'));
+      .some((f) => f.startsWith(prefix) && (f.endsWith('.db') || f.endsWith(`.db${ENC_SUFFIX}`)));
   }
 
   // ===== 保留策略 =====
@@ -238,7 +319,8 @@ class BackupService {
    */
   pruneDailyBackups(keep = DAILY_KEEP) {
     const daily = this.fs.readdirSync(this._backupDir())
-      .filter((f) => f.startsWith('workbench_daily-') && f.endsWith('.db'))
+      .filter((f) => f.startsWith('workbench_daily-')
+        && (f.endsWith('.db') || f.endsWith(`.db${ENC_SUFFIX}`)))
       .map((f) => ({ f, stat: this.fs.statSync(this.path.join(this._backupDir(), f)) }))
       .sort((a, b) => a.stat.mtimeMs - b.stat.mtimeMs);
     const excess = daily.slice(0, Math.max(0, daily.length - keep));
@@ -267,15 +349,24 @@ class BackupService {
         const stat = this.fs.statSync(this.path.join(this._backupDir(), fileName));
         const meta = this._readMeta(fileName);
         const type = meta?.type || (fileName.startsWith('workbench_daily-') ? 'daily' : 'manual');
-        return this._describe(fileName, stat, type, meta?.note, meta?.schemaVersion);
+        return this._describe(
+          fileName,
+          stat,
+          type,
+          meta?.note,
+          meta?.schemaVersion,
+          meta ? meta.encrypted : undefined,
+        );
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  _describe(fileName, stat, type, note, schemaVersion) {
+  _describe(fileName, stat, type, note, schemaVersion, encrypted) {
     return {
       fileName,
       type,
+      // meta 缺失时按文件名后缀推断，保证旧备份（无 encrypted 字段）也能正确展示
+      encrypted: encrypted ?? isEncryptedName(fileName),
       note: note || null,
       schemaVersion: schemaVersion ?? null,
       size: stat.size,
@@ -320,39 +411,87 @@ class BackupService {
     if (!this.fs.existsSync(backupPath)) {
       throw new BusinessError(ErrorCodes.BACKUP_FILE_NOT_FOUND, '备份文件不存在');
     }
-    // ① 损坏校验
-    if (!this._isSQLiteFile(backupPath)) {
-      throw new BusinessError(ErrorCodes.BACKUP_CORRUPTED, '备份文件已损坏，无法恢复（已保留原主库）');
-    }
     // ① 版本校验
     this._checkVersionAllowed(this._readMeta(fileName));
 
-    // ② 恢复前安全快照
-    const snapName = `workbench_pre-restore-${stamp(new Date(this.clock()))}.db`;
-    const snapPath = this.path.join(this._backupDir(), snapName);
+    // ② 密文备份：先解密到临时明文（用完即删），后续流程统一只处理明文库
+    let plainSource = backupPath;
+    let tmpDecrypted = null;
+    if (isEncryptedName(fileName)) {
+      if (!this.passphrase) {
+        // 硬约束③：缺密码显式报错，绝不「跳过解密直接拿密文覆盖主库」
+        throw new BusinessError(
+          ErrorCodes.BACKUP_PASSPHRASE_REQUIRED,
+          '该备份已加密，恢复需要数据库主密码：请用设置 HTD_DB_PASSPHRASE 的方式启动工作台',
+        );
+      }
+      tmpDecrypted = this.path.join(this._backupDir(), `.tmp-restore-${Date.now()}.db`);
+      try {
+        this.fs.writeFileSync(tmpDecrypted, decrypt(this.fs.readFileSync(backupPath), this.passphrase));
+      } catch (e) {
+        try { if (this.fs.existsSync(tmpDecrypted)) this.fs.unlinkSync(tmpDecrypted); } catch (_) { /* ignore */ }
+        throw new BusinessError(ErrorCodes.BACKUP_DECRYPT_FAILED, '备份解密失败：主密码错误或密文已损坏（已保留原主库）');
+      }
+      plainSource = tmpDecrypted;
+    }
+
     try {
-      this.fs.copyFileSync(this.appConfig.dbPath, snapPath);
-      this._writeMeta(snapName, { type: 'pre-restore', note: fileName, createdAt: new Date(this.clock()).toISOString() });
-    } catch (e) {
-      throw new BusinessError(ErrorCodes.BACKUP_RESTORE_FAILED, `恢复前快照失败：${e.message}`);
-    }
+      // ③ 损坏校验（统一在明文态做，密文已在上一步解开）
+      if (!this._isSQLiteFile(plainSource)) {
+        throw new BusinessError(ErrorCodes.BACKUP_CORRUPTED, '备份文件已损坏，无法恢复（已保留原主库）');
+      }
 
-    // ③ 覆盖主库
-    try {
-      this.fs.copyFileSync(backupPath, this.appConfig.dbPath);
-    } catch (e) {
-      // 覆盖失败：尽量回滚快照
-      try { this.fs.copyFileSync(snapPath, this.appConfig.dbPath); } catch (_) { /* ignore */ }
-      throw new BusinessError(ErrorCodes.BACKUP_RESTORE_FAILED, `恢复覆盖失败：${e.message}`);
-    }
+      // ④ 恢复前安全快照（加密启用时快照同样落密文，否则备份目录会冒出明文副本）
+      const snapBase = `workbench_pre-restore-${stamp(new Date(this.clock()))}`;
+      const snapName = `${snapBase}${this._encryptActive() ? `.db${ENC_SUFFIX}` : '.db'}`;
+      const snapPath = this.path.join(this._backupDir(), snapName);
+      try {
+        if (this._encryptActive()) {
+          await this._copyMainEncryptedTo(snapPath, snapBase, false);
+        } else {
+          this.fs.copyFileSync(this.appConfig.dbPath, snapPath);
+        }
+        this._writeMeta(snapName, {
+          type: 'pre-restore',
+          note: fileName,
+          encrypted: this._encryptActive(),
+          createdAt: new Date(this.clock()).toISOString(),
+        });
+      } catch (e) {
+        throw new BusinessError(ErrorCodes.BACKUP_RESTORE_FAILED, `恢复前快照失败：${e.message}`);
+      }
 
-    // ④ 重连（可选）
-    if (this.prisma && typeof this.prisma.$disconnect === 'function') {
-      try { await this.prisma.$disconnect(); } catch (_) { /* ignore */ }
-    }
+      // ⑤ 覆盖主库
+      try {
+        this.fs.copyFileSync(plainSource, this.appConfig.dbPath);
+      } catch (e) {
+        // 覆盖失败：尽量回滚快照。快照可能是密文，必须解密回写而非直接拷贝——
+        // 把密文当主库覆盖会造成二次破坏，比不回滚更糟。
+        try {
+          if (isEncryptedName(snapName)) {
+            this.fs.writeFileSync(
+              this.appConfig.dbPath,
+              decrypt(this.fs.readFileSync(snapPath), this.passphrase),
+            );
+          } else {
+            this.fs.copyFileSync(snapPath, this.appConfig.dbPath);
+          }
+        } catch (_) { /* ignore */ }
+        throw new BusinessError(ErrorCodes.BACKUP_RESTORE_FAILED, `恢复覆盖失败：${e.message}`);
+      }
 
-    this.eventBus.emit('backup:restored', { fileName, snapshot: snapName });
-    return { fileName, snapshot: snapName };
+      // ⑥ 重连（可选）
+      if (this.prisma && typeof this.prisma.$disconnect === 'function') {
+        try { await this.prisma.$disconnect(); } catch (_) { /* ignore */ }
+      }
+
+      this.eventBus.emit('backup:restored', { fileName, snapshot: snapName });
+      return { fileName, snapshot: snapName, encrypted: isEncryptedName(fileName) };
+    } finally {
+      if (tmpDecrypted) {
+        try { if (this.fs.existsSync(tmpDecrypted)) this.fs.unlinkSync(tmpDecrypted); } catch (_) { /* ignore */ }
+      }
+    }
   }
 
   // ===== 状态 =====

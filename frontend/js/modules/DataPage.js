@@ -583,6 +583,7 @@ const DataPage = {
                   <htp-tag :type="item.type === 'manual' ? 'primary' : (item.type === 'pre-restore' ? 'warning' : 'info')">
                     {{ item.type === 'manual' ? '手动' : (item.type === 'pre-restore' ? '恢复前快照' : '每日') }}
                   </htp-tag>
+                  <htp-tag v-if="item.encrypted" type="success" title="静态加密备份（AES-256-GCM），恢复需数据库主密码">已加密</htp-tag>
                 </div>
                 <div class="text-tertiary">
                   {{ item.sizeText }} · {{ item.updatedAt }}

@@ -41,6 +41,9 @@ export const ErrorCodes = {
   BACKUP_CORRUPTED: 'RESULT.BACKUP.CORRUPTED',
   BACKUP_CREATE_FAILED: 'EXEC.BACKUP.CREATE_FAILED',
   BACKUP_RESTORE_FAILED: 'EXEC.BACKUP.RESTORE_FAILED',
+  // 加密备份（V2-3 配套）：恢复密文备份时缺主密码 / 口令错误
+  BACKUP_PASSPHRASE_REQUIRED: 'PARAM.BACKUP.PASSPHRASE_REQUIRED',
+  BACKUP_DECRYPT_FAILED: 'RESULT.BACKUP.DECRYPT_FAILED',
 
   // 异地备份相关错误（V2-2）
   REMOTE_BACKUP_CONFIG_INVALID: 'PARAM.REMOTE_BACKUP.CONFIG_INVALID',
@@ -77,6 +80,8 @@ export const ErrorMessages = {
   [ErrorCodes.BACKUP_CORRUPTED]: '备份文件已损坏，无法恢复（已保留原主库）',
   [ErrorCodes.BACKUP_CREATE_FAILED]: '备份创建失败',
   [ErrorCodes.BACKUP_RESTORE_FAILED]: '备份恢复失败',
+  [ErrorCodes.BACKUP_PASSPHRASE_REQUIRED]: '该备份已加密，恢复需要数据库主密码（当前进程未持有）',
+  [ErrorCodes.BACKUP_DECRYPT_FAILED]: '备份解密失败：主密码错误或密文已损坏（已保留原主库）',
   [ErrorCodes.REMOTE_BACKUP_CONFIG_INVALID]: '异地备份配置不完整或不被支持',
   [ErrorCodes.REMOTE_BACKUP_UPLOAD_FAILED]: '异地备份上传失败',
   [ErrorCodes.REMOTE_BACKUP_LIST_FAILED]: '异地备份目录列举失败',

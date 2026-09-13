@@ -6,6 +6,7 @@ import { bootstrap } from './bootstrap.js';
 import { connectDatabase, disconnectDatabase } from './database/prisma.js';
 import { unlockDatabase, lockDatabase } from './database/vault.js';
 import remoteBackupService from './modules/system/remote-backup.service.js';
+import backupService from './modules/system/backup.service.js';
 import { findAvailablePort } from './common/utils/port.js';
 import { openBrowser } from './common/utils/browser.js';
 import appConfig from './config/app.config.js';
@@ -67,6 +68,11 @@ async function startServer() {
     // 否则「本地加密、异地明文」会让 V2-3 的保护在数据离开本机时彻底失效。
     if (vaultState.encrypted && vaultState.passphrase) {
       remoteBackupService.setPassphrase(vaultState.passphrase);
+    }
+    // V2-3 配套：本地备份同样必须落密文。只锁主库而备份目录全是明文副本，
+    // 等于任何人拿到 backups/ 就能读走全部数据，加密形同虚设。
+    if (vaultState.encrypted && vaultState.passphrase) {
+      backupService.setPassphrase(vaultState.passphrase);
     }
 
     // 1. 启动自检
