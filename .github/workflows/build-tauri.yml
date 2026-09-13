@@ -4,14 +4,10 @@ name: Build Tauri (Windows)
 # 既验证 Rust 骨架能否编译，又产出 NSIS 安装包产物。
 # MSVC target 由 runner 预装的 VS Build Tools + Windows SDK 支撑，无需本机那种
 # 靠 MinGW 的 GNU 链路，因此 CI 不受本地网络拉取 105MB MinGW 的拖累。
+# S4 决策：桌面壳（Tauri）搁置，交付形态改为服务端部署 + 浏览器访问。
+# 自动触发会在每次 push 后占用约 8 分钟 CI 且无实际交付物，故改为手动触发
+# （Actions 页面 → Build Tauri (Windows) → Run workflow）保留编译验证能力。
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src-tauri/**'
-      - 'frontend/**'
-      - 'backend/**'
-      - '.github/workflows/build-tauri.yml'
   workflow_dispatch:
 
 env:

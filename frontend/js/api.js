@@ -67,6 +67,22 @@ async function request(url, options = {}) {
 
   try {
     const response = await fetch(fullUrl, config);
+
+    // S4：启用访问令牌后会话失效时，API 返回 401 JSON（或被网关替换成登录页 HTML）。
+    // 两者都引导到验证页——刷新后服务端下发登录页，验证通过自然回到应用。
+    // 注意只拦截走本封装的请求：直接 fetch 的导出/设置接口不受影响。
+    const contentType = String(response.headers.get('content-type') || '');
+    if (response.status === 401 || !contentType.includes('application/json')) {
+      const err = new Error('UNAUTHORIZED');
+      markFailed(err);
+      if (typeof window !== 'undefined' && !window.__htdReLogin) {
+        window.__htdReLogin = true;
+        showToast('登录已失效，正在跳转到验证页', 'error');
+        setTimeout(() => window.location.replace('/'), 800);
+      }
+      throw err;
+    }
+
     const data = await response.json();
 
     // 统一处理响应

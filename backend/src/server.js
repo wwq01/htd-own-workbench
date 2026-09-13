@@ -8,6 +8,7 @@ import { findAvailablePort } from './common/utils/port.js';
 import { openBrowser } from './common/utils/browser.js';
 import appConfig from './config/app.config.js';
 import logger from './common/logger.js';
+import { localIpv4 } from './common/utils/allowed-origins.js';
 import http from 'http';
 
 /**
@@ -70,14 +71,32 @@ async function startServer() {
 
     // 5. 启动 HTTP 服务
     const server = app.listen(port, appConfig.host, () => {
-      const url = `http://${appConfig.host}:${port}`;
+      const isWildcard = appConfig.host === '0.0.0.0' || appConfig.host === '::';
+      const isLoopback = ['127.0.0.1', 'localhost', '::1'].includes(appConfig.host);
+      const url = `http://${isWildcard ? '127.0.0.1' : appConfig.host}:${port}`;
+      const lanHosts = (isWildcard || appConfig.lan) ? localIpv4() : [];
+      const mode = appConfig.desktop ? '桌面壳 sidecar' : appConfig.server ? '服务端常驻' : '本机';
+
       logger.info(`========================================`);
       logger.info(`  荒天帝工作台已启动`);
       logger.info(`  访问地址: ${url}`);
+      for (const ip of lanHosts) {
+        logger.info(`  局域网:   http://${ip}:${port}`);
+      }
+      logger.info(`  运行模式: ${mode}（监听 ${appConfig.host}:${port}）`);
       logger.info(`  API 前缀: ${appConfig.apiPrefix}`);
       logger.info(`  数据目录: ${appConfig.dataRoot}`);
+      logger.info(`  访问令牌: ${appConfig.accessToken ? '已启用' : '未启用'}`);
       logger.info(`  运行环境: ${appConfig.env}`);
       logger.info(`========================================`);
+
+      // S4 安全自检：监听非回环地址却未启用令牌 = 任何人可读写全部个人数据
+      if (!isLoopback && !appConfig.accessToken) {
+        logger.warn(
+          '[安全警告] 当前监听非回环地址且未设置 HTD_ACCESS_TOKEN：任何能访问该端口的人都可读写全部数据。'
+          + '请设置访问令牌（HTD_ACCESS_TOKEN）或改回仅本机监听。',
+        );
+      }
 
       // S3-0：桌面模式以机器可读行告知壳实际端口（壳据此让 webview 加载对应地址）。
       // 约定：单行 JSON，前缀 HTD_READY，末尾换行；壳用 /^HTD_READY (.+)$/ 解析。
@@ -95,7 +114,8 @@ async function startServer() {
 
       // 自动打开浏览器（延迟 500ms 确保服务就绪）
       // S3-0：桌面模式下页面由壳内 webview 加载，不弹系统浏览器
-      if (!appConfig.desktop) {
+      // S4：服务端常驻模式由使用者自行访问，不在服务器上弹浏览器
+      if (!appConfig.desktop && !appConfig.server) {
         setTimeout(() => {
           openBrowser(url);
         }, 500);

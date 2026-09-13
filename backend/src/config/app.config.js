@@ -28,12 +28,32 @@ function resolveDataRoot() {
 }
 const DATA_ROOT = resolveDataRoot();
 
+const TRUTHY = new Set(['1', 'true', 'yes', 'on']);
+function isTruthy(value) {
+  return TRUTHY.has(String(value || '').trim().toLowerCase());
+}
+function parseList(value) {
+  return String(value || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 const appConfig = {
   // 运行环境
   env: process.env.NODE_ENV || 'development',
 
   // 服务端口
   port: parseInt(process.env.HTD_PORT, 10) || 17388,
+
+  // 监听地址（S4 服务端部署）。默认仍为回环地址——保持「仅本机可访问」的既有安全边界。
+  // 需要局域网/其他设备访问时设置 HTD_HOST=0.0.0.0。
+  host: process.env.HTD_HOST || '127.0.0.1',
+
+  // 服务端常驻模式（S4）：HTD_SERVER=1
+  // 与桌面模式一致的差异：不自动打开浏览器、不做「同端口已有实例则复用并退出」。
+  // 常驻场景下复用退出会让守护脚本误判「启动即成功实则已退出」。
+  server: isTruthy(process.env.HTD_SERVER),
 
   // 运行模式：desktop = 被桌面壳（Tauri）以 sidecar 方式拉起
   // 与普通启动的差异（S3-0 契约，详见 docs/产品迭代/S3-执行方案.md）：
@@ -60,14 +80,29 @@ const appConfig = {
     ? path.resolve(moduleDir, '../prisma/template.db')
     : path.resolve(moduleDir, '../../prisma/template.db'),
 
+  // 允许的来源白名单（S4）：非回环访问时，Origin 校验与 CORS 都需要显式放行。
+  //   例：HTD_ALLOWED_ORIGINS=http://192.168.1.10:17388,https://htd.example.com
+  //   填 `*` 表示放行任意来源（仅建议在已启用访问令牌 / 前置反向代理时使用）。
+  allowedOrigins: parseList(process.env.HTD_ALLOWED_ORIGINS),
+
+  // 局域网模式（S4）：HTD_LAN=1 时自动把本机所有非回环 IPv4 加入来源白名单，
+  // 免去手工列举内网 IP（DHCP 变更 IP 后不会失效）。
+  lan: isTruthy(process.env.HTD_LAN),
+
+  // 访问令牌（S4）：HTD_ACCESS_TOKEN 为空 = 不鉴权（维持既有本机模式，零回归）；
+  // 一旦设置，全站需先凭令牌换取会话 Cookie 才能访问。
+  // 服务暴露到非本机（0.0.0.0 / 公网域名）时必须设置，否则个人数据无任何门禁。
+  accessToken: process.env.HTD_ACCESS_TOKEN || '',
+
+  // 反向代理信任（S4）：HTD_TRUST_PROXY=1 时启用 express trust proxy，
+  // 使 req.ip 取到 X-Forwarded-For 真实客户端 IP（日志与限流准确）。
+  trustProxy: isTruthy(process.env.HTD_TRUST_PROXY),
+
   // 应用版本
   version: '1.5.0',
 
   // API 前缀
   apiPrefix: '/api/v1',
-
-  // 主机地址
-  host: '127.0.0.1',
 };
 
 export default appConfig;

@@ -25,3 +25,7 @@ Thumbs.db
 
 # WorkBuddy local memory / skills / artifacts (must never be committed)
 .workbuddy/
+
+# S4 服务端部署：运行日志与含访问令牌的本地配置
+logs/
+deploy/server.env

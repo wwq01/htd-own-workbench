@@ -10,6 +10,8 @@ import { responseMiddleware } from './middleware/response.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { requestLogMiddleware } from './middleware/requestLog.js';
 import originGuard from './middleware/origin-guard.js';
+import accessGuard from './middleware/access-guard.js';
+import { isOriginAllowed } from './common/utils/allowed-origins.js';
 import backupTrigger from './middleware/backup-trigger.js';
 import backupService from './modules/system/backup.service.js';
 import prisma from './database/prisma.js';
@@ -48,20 +50,16 @@ function createApp() {
   const app = express();
 
   // ===== 基础中间件 =====
-  // CORS 收敛为本地源白名单：仅允许同源 / localhost / 127.0.0.1，
-  // 可通过 HTD_CORS_ORIGINS 环境变量追加（逗号分隔），杜绝完全开放。
-  const allowedOrigins = new Set([
-    `http://${appConfig.host}:${appConfig.port}`,
-    `http://localhost:${appConfig.port}`,
-    `http://127.0.0.1:${appConfig.port}`,
-    ...(process.env.HTD_CORS_ORIGINS
-      ? process.env.HTD_CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
-      : []),
-  ]);
+  // CORS 收敛为来源白名单。S4：与 originGuard 共用 allowed-origins.js 的同一实现
+  // （回环 + HTD_ALLOWED_ORIGINS + HTD_LAN 内网 IP + `*` 通配），杜绝两处白名单漂移。
+  // 若 appConfig.trustProxy 打开（前置反向代理），先让 express 解析 X-Forwarded-For。
+  if (appConfig.trustProxy) {
+    app.set('trust proxy', true);
+  }
   app.use(cors({
     origin: (origin, callback) => {
       // 同源请求（origin 为空）或命中白名单放行；其余拒绝（不返回 CORS 头）
-      if (!origin || allowedOrigins.has(origin)) {
+      if (isOriginAllowed(origin)) {
         callback(null, true);
       } else {
         callback(null, false);
@@ -73,8 +71,11 @@ function createApp() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
   app.use(requestLogMiddleware);
   app.use(responseMiddleware);
-  // 写入类接口 Origin 校验（仅允许本地 127.0.0.1 / localhost，防御 CSRF）
+  // 写入类接口 Origin 校验（防御 CSRF；白名单见 allowed-origins.js）
   app.use(originGuard);
+  // 访问令牌门禁（S4）：未设置 HTD_ACCESS_TOKEN 时中间件内直接放行，本机模式零回归。
+  // 置于路由与静态托管之前，故登录页本身不依赖任何静态资源。
+  app.use(accessGuard);
   // 写入成功后懒触发每日自动备份（不阻塞主流程）
   app.use(backupTrigger);
   // 恢复备份后让 Prisma 断开并以新库重连
