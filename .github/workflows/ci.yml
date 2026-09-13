@@ -5,6 +5,14 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
+  # 桌面客户端（pkg 单文件 exe / macOS 包）已停建，改为按需手动触发，
+  # 不再作为每次 push 的门禁——见 §S4：交付形态切换为服务端部署。
+  workflow_dispatch:
+    inputs:
+      package_desktop:
+        description: '同时产出桌面客户端包'
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -65,11 +73,81 @@ jobs:
       - name: Run Vitest
         run: npm test
 
+  # 服务端部署冒烟（S4 新形态）：每次 push 验证「能起来 + 该拦的拦得住」。
+  # 桌面客户端停建后，这是唯一与真实交付形态一致的端到端回归。
+  server-smoke:
+    name: Server deploy smoke
+    needs: [lint, typecheck, test]
+    runs-on: ubuntu-latest
+    env:
+      HTD_HOST: 127.0.0.1
+      HTD_PORT: '17388' # findAvailablePort 只放行 17388/17389/17390
+      HTD_SERVER: '1' # 常驻模式：不开浏览器、不做复用退出
+      HTD_ACCESS_TOKEN: ci-smoke-token
+      HTD_DATA_ROOT: ${{ github.workspace }}/.ci-smoke-data
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm install
+      - name: Generate prisma client + template db
+        run: npm run db:generate && npm run build:template
+
+      - name: Boot server in server mode
+        run: |
+          mkdir -p "$HTD_DATA_ROOT"
+          node src/server.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/server.pid"
+          for i in $(seq 1 60); do
+            if curl -fsS "http://127.0.0.1:$HTD_PORT/api/v1/system/health" >/dev/null 2>&1; then
+              echo "ready after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::server did not become ready"; cat "$RUNNER_TEMP/server.log"; exit 1
+
+      - name: Health 探活必须放行（守护脚本/反向代理依赖）
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$HTD_PORT/api/v1/system/health")
+          echo "health status=$code"
+          [ "$code" = "200" ] || { echo "::error::health should be open"; exit 1; }
+
+      - name: 无凭证访问 API 必须 401（令牌门禁未失效）
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$HTD_PORT/api/v1/memos")
+          echo "unauth status=$code"
+          [ "$code" = "401" ] || { echo "::error::expected 401 without token"; exit 1; }
+
+      - name: 带令牌访问 API 必须 200
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $HTD_ACCESS_TOKEN" \
+            "http://127.0.0.1:$HTD_PORT/api/v1/memos")
+          echo "auth status=$code"
+          [ "$code" = "200" ] || { echo "::error::expected 200 with token"; exit 1; }
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/server.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/server.pid")" 2>/dev/null || true
+          fi
+          echo "--- server.log ---"; cat "$RUNNER_TEMP/server.log" || true
+
   # 产出跨平台可执行文件（门禁：lint+typecheck+test 全绿才允许）
   build:
     name: Build (${{ matrix.os }})
     needs: [lint, typecheck, test]
+    # 桌面客户端停建，仅在手动触发并勾选 package_desktop 时出包
+    if: github.event_name == 'workflow_dispatch' && inputs.package_desktop
     strategy:
+      fail-fast: false # 一个平台失败不应掩盖另一个平台的结论
       matrix:
         include:
           - os: windows-latest
@@ -101,6 +179,7 @@ jobs:
   launcher-test:
     name: Launcher probe (macOS)
     needs: [build]
+    if: github.event_name == 'workflow_dispatch' && inputs.package_desktop
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4

@@ -29,3 +29,6 @@ Thumbs.db
 # S4 服务端部署：运行日志与含访问令牌的本地配置
 logs/
 deploy/server.env
+
+# 生成的审计报告（每次 lint 重写，仅含时间戳差异）
+backend/scripts/visual-audit-report.json
