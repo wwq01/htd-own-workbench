@@ -4,6 +4,7 @@
 import createApp from './app.js';
 import { bootstrap } from './bootstrap.js';
 import { connectDatabase, disconnectDatabase } from './database/prisma.js';
+import { unlockDatabase, lockDatabase } from './database/vault.js';
 import { findAvailablePort } from './common/utils/port.js';
 import { openBrowser } from './common/utils/browser.js';
 import appConfig from './config/app.config.js';
@@ -37,6 +38,30 @@ async function probeInstance(port) {
 
 async function startServer() {
   try {
+    // 0. V2-3：加密库解锁。未启用加密时直接返回 encrypted:false，后续流程无感。
+    //    解锁失败一律显式退出——绝不降级为明文只读，否则用户会误以为数据仍受保护。
+    let vaultState = { encrypted: false };
+    try {
+      vaultState = await unlockDatabase();
+    } catch (error) {
+      if (error.message === 'BAD_PASSPHRASE') {
+        logger.error('数据库主密码错误或密文已损坏，无法解锁。请确认 HTD_DB_PASSPHRASE 是否正确。');
+      } else {
+        logger.error('数据库已加密但取不到主密码：请设置环境变量 HTD_DB_PASSPHRASE，或在终端中直接启动以便交互输入。');
+      }
+      process.exit(1);
+    }
+
+    // 退出时把运行期明文库重新加密回去。用 once 语义兜住多条退出路径：
+    // 优雅关闭、强制退出、未捕获异常、以及任何未走上述分支的 process.exit。
+    let locked = false;
+    const lockOnce = () => {
+      if (locked) return;
+      locked = true;
+      lockDatabase(vaultState);
+    };
+    process.on('exit', lockOnce);
+
     // 1. 启动自检
     await bootstrap();
 
@@ -46,7 +71,7 @@ async function startServer() {
     // 2.5 进程复用：若默认端口已有工作台实例在跑，直接打开浏览器复用，避免多进程写 SQLite 锁冲突
     //     S3-0：桌面模式跳过——唯一实例由桌面壳的 single-instance 保证，
     //     sidecar 若在此退出会被壳判定为「子进程异常终止」，反而拿不到端口。
-    if (!appConfig.desktop) {
+    if (!appConfig.desktop && !appConfig.server) {
       const existingInstance = await probeInstance(appConfig.port);
       if (existingInstance) {
         const url = `http://${appConfig.host}:${appConfig.port}`;
@@ -127,6 +152,7 @@ async function startServer() {
       logger.info(`收到 ${signal} 信号，正在优雅关闭服务...`);
       server.close(async () => {
         await disconnectDatabase();
+        lockOnce();
         logger.info('服务已关闭');
         process.exit(0);
       });
@@ -134,6 +160,7 @@ async function startServer() {
       // 5 秒后强制退出
       setTimeout(() => {
         logger.error('优雅关闭超时，强制退出');
+        lockOnce();
         process.exit(1);
       }, 5000);
     };

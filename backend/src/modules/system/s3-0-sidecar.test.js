@@ -114,19 +114,21 @@ describe('S3-0 sidecar 启动契约', () => {
       expect(serverSrc).toMatch(/HTD_READY \$\{JSON\.stringify\(/);
     });
 
-    it('桌面模式下不自动打开系统浏览器', () => {
-      // openBrowser 调用必须被 desktop 条件包裹
-      expect(serverSrc).toContain('if (!appConfig.desktop) {');
+    it('桌面模式与服务端常驻模式下均不自动打开系统浏览器', () => {
+      // openBrowser 调用必须被「非桌面 且 非常驻」条件包裹。
+      // S4：常驻模式（HTD_SERVER=1）部署在服务器上，同样不该弹系统浏览器。
+      expect(serverSrc).toContain('if (!appConfig.desktop && !appConfig.server) {');
       expect(serverSrc).toContain('openBrowser(url)');
     });
 
-    it('桌面模式下跳过「复用已有实例并退出」分支', () => {
-      // 该分支含 process.exit(0)，若被壳拉起时会让壳误判子进程异常终止
+    it('桌面模式与服务端常驻模式下均跳过「复用已有实例并退出」分支', () => {
+      // 该分支含 process.exit(0)：桌面壳会误判子进程异常终止；
+      // 常驻部署则会让守护脚本误以为「启动即成功」，实际进程已退出。
       const reuseBlock = serverSrc.slice(
         serverSrc.indexOf('进程复用'),
         serverSrc.indexOf('检测可用端口'),
       );
-      expect(reuseBlock).toContain('if (!appConfig.desktop)');
+      expect(reuseBlock).toContain('if (!appConfig.desktop && !appConfig.server)');
       expect(reuseBlock).toContain('process.exit(0)');
     });
   });
