@@ -45,6 +45,7 @@ import readingRouter from './modules/reading/reading.router.js';
 import noteRouter from './modules/note/note.router.js';
 import rfpItemRouter from './modules/rfp/rfp.router.js';
 import searchRouter from './modules/search/search.router.js';
+import agentRouter from './modules/agent/agent.router.js';
 import logger from './common/logger.js';
 
 function createApp() {
@@ -114,6 +115,7 @@ function createApp() {
   app.use(`${appConfig.apiPrefix}/notes`, noteRouter);
   app.use(`${appConfig.apiPrefix}/rfp-items`, rfpItemRouter);
   app.use(`${appConfig.apiPrefix}/search`, searchRouter);
+  app.use(`${appConfig.apiPrefix}/agent`, agentRouter);
 
   // ===== 前端静态资源托管 =====
   // S2-1：优先使用 Vite 构建产物 frontend/dist；缺失或为空时回退到无构建 frontend/

@@ -37,14 +37,14 @@ function check(name, cond, extra) {
 console.log('=== S1 registry verification ===\n');
 
 // 1. 模块数量
-check('MODULE_META 有 21 个模块', MODULE_META.length === 21, 'actual=' + MODULE_META.length);
+check('MODULE_META 有 22 个模块', MODULE_META.length === 22, 'actual=' + MODULE_META.length);
 
-// 2. 改造前 router.js 注册的 21 个 path（从 git 历史/原文件约定）
+// 2. 改造前 router.js 注册的 21 个 path（从 git 历史/原文件约定）+ V2-1 新增 /agent
 const EXPECTED_PATHS = [
   '/', '/todo', '/project', '/develop', '/entertainment', '/study', '/review',
   '/secret', '/data', '/settings', '/meeting', '/habit', '/time-block',
   '/finance', '/vault', '/system/recycle-bin', '/poc', '/bid', '/vuln',
-  '/incident', '/reading',
+  '/incident', '/reading', '/agent',
 ];
 const actualPaths = MODULE_META.map((m) => m.path);
 const missingPaths = EXPECTED_PATHS.filter((p) => !actualPaths.includes(p));
@@ -52,11 +52,11 @@ const extraPaths = actualPaths.filter((p) => !EXPECTED_PATHS.includes(p));
 check('21 个路由路径全部覆盖（无缺失）', missingPaths.length === 0, 'missing=' + JSON.stringify(missingPaths));
 check('无多余路由路径', extraPaths.length === 0, 'extra=' + JSON.stringify(extraPaths));
 
-// 3. 改造前 pageComponents 的 21 个 key
+// 3. 改造前 pageComponents 的 21 个 key + V2-1 新增 agent
 const EXPECTED_KEYS = [
   'home', 'todo', 'project', 'develop', 'entertainment', 'study', 'review',
   'secret', 'data', 'settings', 'meeting', 'habit', 'time-block', 'finance',
-  'vault', 'recycle-bin', 'poc', 'bid', 'vuln', 'incident', 'reading',
+  'vault', 'recycle-bin', 'poc', 'bid', 'vuln', 'incident', 'reading', 'agent',
 ];
 const actualKeys = MODULE_META.map((m) => m.key);
 const missingKeys = EXPECTED_KEYS.filter((k) => !actualKeys.includes(k));
@@ -74,19 +74,19 @@ check('所有模块都有 pinyin 索引', noPinyin.length === 0, JSON.stringify(
 
 // 5. 派生函数
 const navItems = reg.buildNavItems();
-check('buildNavItems 产出 21 项', navItems.length === 21, 'actual=' + navItems.length);
+check('buildNavItems 产出 22 项', navItems.length === 22, 'actual=' + navItems.length);
 const navBad = navItems.filter((n) => !n.path || !n.label || !n.icon);
 check('buildNavItems 每项含 path/label/icon', navBad.length === 0, JSON.stringify(navBad));
 
 const cmds = reg.buildNavCommands('<svg/>');
-check('buildNavCommands 产出 21 项', cmds.length === 21, 'actual=' + cmds.length);
+check('buildNavCommands 产出 22 项', cmds.length === 22, 'actual=' + cmds.length);
 const cmdBad = cmds.filter((c) => !c.id || !c.path || c.type !== 'nav' || !c.pinyinKeys || c.pinyinKeys.length === 0);
 check('buildNavCommands 每项含 id/path/type/pinyinKeys', cmdBad.length === 0, JSON.stringify(cmdBad.map((c) => c.id)));
 
 // 6. pageComponents 延迟求值（模拟全局组件变量）
 MODULE_META.forEach((m) => { global.window[m.component] = { name: m.component }; });
 const comps = reg.buildPageComponents();
-check('buildPageComponents 解析出 21 个组件', Object.keys(comps).length === 21, 'actual=' + Object.keys(comps).length);
+check('buildPageComponents 解析出 22 个组件', Object.keys(comps).length === 22, 'actual=' + Object.keys(comps).length);
 const missingComp = EXPECTED_KEYS.filter((k) => !comps[k]);
 check('21 个 key 全部映射到组件', missingComp.length === 0, 'missing=' + JSON.stringify(missingComp));
 
@@ -110,15 +110,15 @@ check('registry.js 先于 router.js', iReg > -1 && iReg < iRouter, `reg=${iReg} 
 check('registry.js 先于 HtpCommandPalette.js', iReg > -1 && iReg < iPalette, `reg=${iReg} palette=${iPalette}`);
 check('registry.js 先于 app.js', iReg > -1 && iReg < iApp, `reg=${iReg} app=${iApp}`);
 
-// 9. entry.js 须引入全部 21 个页面模块（防止 S2 收敛时漏引导致页面注册漂移）
+// 9. entry.js 须引入全部 22 个页面模块（防止 S2 收敛时漏引导致页面注册漂移）
 const expectedModules = [
   'HomePage', 'TodoPage', 'ProjectPage', 'DevelopPage', 'EntertainmentPage', 'StudyPage',
   'ReviewPage', 'SecretPage', 'DataPage', 'SettingsPage', 'MeetingPage', 'HabitPage',
   'TimeBlockPage', 'FinancePage', 'VaultPage', 'RecycleBinPage', 'PocPage', 'BidPage',
-  'VulnPage', 'IncidentPage', 'ReadingPage',
+  'VulnPage', 'IncidentPage', 'ReadingPage', 'AgentPage',
 ];
 const missingModules = expectedModules.filter((m) => !entry.includes(`'../js/modules/${m}.js'`));
-check('entry.js 引入全部 21 个页面模块', missingModules.length === 0, 'missing=' + JSON.stringify(missingModules));
+check('entry.js 引入全部 22 个页面模块', missingModules.length === 0, 'missing=' + JSON.stringify(missingModules));
 
 console.log('\n=== RESULT: ' + pass + ' passed, ' + fail + ' failed ===');
 process.exit(fail === 0 ? 0 : 1);

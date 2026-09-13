@@ -617,3 +617,23 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+// ===== 本地 Agent 通道（V2-1：agent-inbox + Skills + JobRunner）=====
+// 任务收件箱：用户提交指令 → 系统按关键字匹配或指定本地技能 → JobRunner 在本机执行 → 结果落库
+model AgentTask {
+  id        String   @id @default(cuid())
+  title     String // 任务标题（用户填写或自动从指令生成）
+  prompt    String // 用户指令原文
+  skillKey  String   @default("auto") // 指定技能 key；auto=按关键字匹配
+  status    String   @default("pending") // pending/running/succeeded/failed/cancelled
+  result    String?  // 执行结果（JSON 字符串：{ skill, output }）
+  error     String?  // 失败原因
+  startedAt DateTime?
+  finishedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@map("agent_tasks")
+}

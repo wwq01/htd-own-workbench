@@ -74,6 +74,7 @@ import '../js/modules/BidPage.js';
 import '../js/modules/VulnPage.js';
 import '../js/modules/IncidentPage.js';
 import '../js/modules/ReadingPage.js';
+import '../js/modules/AgentPage.js';
 
 // ===== 主题管理器（V1.4，置于 app.js 前，防 FOUC，设置 <html> 三属性） =====
 import '../js/utils/theme-manager.js';

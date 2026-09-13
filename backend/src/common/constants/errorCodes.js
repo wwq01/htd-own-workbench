@@ -86,4 +86,8 @@ export const ErrorMessages = {
   [ErrorCodes.REMOTE_BACKUP_UPLOAD_FAILED]: '异地备份上传失败',
   [ErrorCodes.REMOTE_BACKUP_LIST_FAILED]: '异地备份目录列举失败',
   [ErrorCodes.REMOTE_BACKUP_REMOVE_FAILED]: '异地备份清理失败',
+  [ErrorCodes.AGENT_TASK_NOT_FOUND]: '任务不存在或已删除',
+  [ErrorCodes.AGENT_SKILL_NOT_FOUND]: '指定的技能不存在',
+  [ErrorCodes.AGENT_RUN_FAILED]: '任务执行失败',
+  [ErrorCodes.AGENT_PROMPT_REQUIRED]: '指令内容不能为空',
 };

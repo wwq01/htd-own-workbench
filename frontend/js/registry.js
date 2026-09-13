@@ -214,6 +214,16 @@ const MODULE_META = [
     group: 'system',
     pinyin: ['shezhi', 'sz', 'xitong', 'xt', 'xitongshezhi', 'xtsz'],
   },
+  {
+    key: 'agent',
+    path: '/agent',
+    title: '本地 Agent 通道',
+    label: '本地 Agent',
+    icon: 'M9 3v2M15 3v2M9 19v2M15 19v2M3 9h2M3 15h2M21 9h-2M21 15h-2M7 7h10v10H7z',
+    component: 'AgentPage',
+    group: 'system',
+    pinyin: ['agent', 'bentongdao', 'shoujianxiang', 'inbox', 'jinxing', 'zhineng', 'skill', 'zhinengti'],
+  },
 ];
 
 /**
