@@ -18,6 +18,10 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
 
+# 默认 GITHUB_TOKEN 对 contents 是只读的；失败回传日志需要写权限
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -74,7 +78,7 @@ jobs:
           if [ -s build.log ]; then cp build.log "logs/build-${GITHUB_RUN_ID}.log"; else echo "(build.log 为空或缺失)" > "logs/build-${GITHUB_RUN_ID}.log"; fi
           git add -f logs/
           git commit -m "ci: build log for run ${GITHUB_RUN_ID}"
-          git push --force origin ci-logs
+          git push --force origin "HEAD:refs/heads/ci-logs"
 
       - name: Upload NSIS installer
         if: success()
