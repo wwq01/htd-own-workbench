@@ -120,5 +120,81 @@ const expectedModules = [
 const missingModules = expectedModules.filter((m) => !entry.includes(`'../js/modules/${m}.js'`));
 check('entry.js 引入全部 22 个页面模块', missingModules.length === 0, 'missing=' + JSON.stringify(missingModules));
 
+// 10. 首页卡片 meta 化（V2-1）：home-cards.js 为首页卡片唯一声明处，
+//     卡片跳转目标必须引用 MODULE_META.key（杜绝手写路径漂移），且加载顺序须先于 HomePage.js
+const homeCardsPath = path.join(ROOT, 'js/home-cards.js');
+let hc = null;
+if (!fs.existsSync(homeCardsPath)) {
+  check('home-cards.js 存在', false, 'missing file');
+} else {
+  // eslint-disable-next-line no-eval
+  eval(fs.readFileSync(homeCardsPath, 'utf8'));
+  hc = global.window.htdHomeCards;
+}
+check('home-cards.js 挂载 window.htdHomeCards', !!hc);
+
+const iHomeCards = entry.indexOf("'../js/home-cards.js'");
+const iHomePage = entry.indexOf("'../js/modules/HomePage.js'");
+check('home-cards.js 已引入 entry.js', iHomeCards > -1);
+check('home-cards.js 先于 HomePage.js', iHomeCards > -1 && iHomeCards < iHomePage, `cards=${iHomeCards} home=${iHomePage}`);
+check('home-cards.js 晚于 registry.js', iHomeCards > iReg, `cards=${iHomeCards} reg=${iReg}`);
+
+if (hc) {
+  const colKeys = hc.HOME_COLUMNS.map((c) => c.key);
+  const metaKeys = MODULE_META.map((m) => m.key);
+
+  check('三栏定义为 work/life/knowledge', colKeys.join(',') === 'work,life,knowledge', colKeys.join(','));
+
+  const badCol = hc.HOME_CARDS.filter((c) => colKeys.indexOf(c.column) === -1);
+  check('每张卡片的 column 合法', badCol.length === 0, JSON.stringify(badCol.map((c) => c.key)));
+
+  const badType = hc.HOME_CARDS.filter((c) => hc.HOME_CARD_TYPES.indexOf(c.type) === -1);
+  check('每张卡片的 type 合法', badType.length === 0, JSON.stringify(badType.map((c) => c.key)));
+
+  // 核心断言：跳转目标必须是已注册模块 key（改路由时若只改 registry，此处立刻红）
+  const badModule = hc.HOME_CARDS.concat(hc.HOME_FEATURE_CARDS)
+    .filter((c) => c.module != null && metaKeys.indexOf(c.module) === -1);
+  check('卡片 module 均存在于 MODULE_META', badModule.length === 0, JSON.stringify(badModule.map((c) => c.key)));
+
+  const cardKeys = hc.HOME_CARDS.map((c) => c.key).concat(hc.HOME_FEATURE_CARDS.map((c) => c.key));
+  const dupCardKeys = cardKeys.filter((k, i) => cardKeys.indexOf(k) !== i);
+  check('卡片 key 无重复', dupCardKeys.length === 0, JSON.stringify(dupCardKeys));
+
+  const badSrc = hc.HOME_CARDS.filter((c) => hc.HOME_DATA_PATHS.indexOf(c.source) === -1);
+  check('卡片 source 属于后端 home-summary 契约白名单', badSrc.length === 0, JSON.stringify(badSrc.map((c) => c.key + ':' + c.source)));
+
+  // 渲染完整性：各类型必需字段
+  const statNoHint = hc.HOME_CARDS.filter((c) => c.type === 'stat' && !c.hint);
+  check('stat 卡片均有 hint', statNoHint.length === 0, JSON.stringify(statNoHint.map((c) => c.key)));
+  const countNoTpl = hc.HOME_CARDS.filter((c) => c.type === 'count' && !c.hintTpl);
+  check('count 卡片均有 hintTpl', countNoTpl.length === 0, JSON.stringify(countNoTpl.map((c) => c.key)));
+  const listNoTitle = hc.HOME_CARDS.filter(
+    (c) => (c.type === 'list' || c.type === 'action') && (!c.itemTitle || !c.empty),
+  );
+  check('list/action 卡片均有 itemTitle 与 empty', listNoTitle.length === 0, JSON.stringify(listNoTitle.map((c) => c.key)));
+  const badAction = hc.HOME_CARDS.filter(
+    (c) => c.type === 'action' && ['checkIn', 'generate'].indexOf(c.action) === -1,
+  );
+  check('action 卡片行为合法', badAction.length === 0, JSON.stringify(badAction.map((c) => c.key)));
+
+  // 派生函数可用性（模拟 home 数据）
+  const fakeHome = {
+    work: { todayProgress: { percent: 50, completed: 1, total: 2 }, activeProjects: [] },
+    life: { todayHabits: [], maxStreak: 3 },
+    knowledge: { vaultWeek: { total: 2, draft: 1, precipitated: 1 } },
+  };
+  const built = hc.buildHomeCards(fakeHome);
+  check('buildHomeCards 产出 3 栏', built.length === 3, 'actual=' + built.length);
+  const builtCards = built.reduce((s, col) => s.concat(col.cards), []);
+  check('派生卡片数与声明一致', builtCards.length === hc.HOME_CARDS.length, `${builtCards.length} vs ${hc.HOME_CARDS.length}`);
+  check('派生卡片已解析出 path', builtCards.filter((c) => c.module && !c.path).length === 0);
+  check('buildFeatureCards 解析出 path', hc.buildFeatureCards().filter((f) => !f.path).length === 0);
+
+  // 反漂移：HomePage.js 不得再出现手写的路由字面量（一律走 meta 解析）
+  const homeSrc = fs.readFileSync(path.join(ROOT, 'js/modules/HomePage.js'), 'utf8');
+  const literals = (homeSrc.match(/navigate\('\/[^']*'\)/g) || []);
+  check('HomePage.js 无手写路由字面量', literals.length === 0, JSON.stringify(literals));
+}
+
 console.log('\n=== RESULT: ' + pass + ' passed, ' + fail + ' failed ===');
 process.exit(fail === 0 ? 0 : 1);

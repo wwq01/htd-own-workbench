@@ -28,6 +28,9 @@ import '../js/utils/anchor.js';
 // ===== 模块注册表（S1 单一数据源，须先于 router.js / HtpCommandPalette.js / app.js） =====
 import '../js/registry.js';
 
+// ===== 首页卡片声明表（须在 registry.js 之后：解析 module→path 依赖 htdRegistry；须先于 HomePage.js） =====
+import '../js/home-cards.js';
+
 // ===== 组合式函数 =====
 import '../js/composables/useReducedMotion.js';
 import '../js/composables/useSearchParams.js';
