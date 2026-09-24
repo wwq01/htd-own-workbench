@@ -109,18 +109,36 @@ describe('Agent Service 集成测试', () => {
     expect(re.status).toBe('succeeded');
     expect(re.id).toBe(t.id);
   });
+
+  it('按关键字自动匹配 weekly-report 技能', async () => {
+    const t = await agentService.create({ prompt: `${PREFIX}帮我生成本周周报` });
+    expect(t.status).toBe('succeeded');
+    expect(t.result.skill).toBe('weekly-report');
+    expect(typeof t.result.output.thisWeek).toBe('object');
+  });
+
+  it('按关键字自动匹配 habit-stats 技能', async () => {
+    const t = await agentService.create({ prompt: `${PREFIX}统计一下习惯打卡情况` });
+    expect(t.status).toBe('succeeded');
+    expect(t.result.skill).toBe('habit-stats');
+    expect(Array.isArray(t.result.output.perHabit)).toBe(true);
+  });
 });
 
 describe('Skills 注册表', () => {
-  it('应注册 4 个技能且含 generic 兜底', () => {
+  it('应注册 6 个技能且含 generic 兜底', () => {
     const skills = listSkills();
-    expect(skills.length).toBe(4);
+    expect(skills.length).toBe(6);
     expect(skills.some((s) => s.key === 'generic')).toBe(true);
     expect(skills.some((s) => s.key === 'vault-digest')).toBe(true);
+    expect(skills.some((s) => s.key === 'weekly-report')).toBe(true);
+    expect(skills.some((s) => s.key === 'habit-stats')).toBe(true);
   });
   it('matchSkill 关键字命中', async () => {
     const { matchSkill } = await import('./skills/index.js');
     expect(matchSkill('总结我的 vault 笔记').key).toBe('vault-digest');
+    expect(matchSkill('帮我生成本周周报').key).toBe('weekly-report');
+    expect(matchSkill('统计一下习惯打卡').key).toBe('habit-stats');
     expect(matchSkill('随便聊聊').key).toBe('generic');
   });
 });

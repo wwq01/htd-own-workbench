@@ -44,6 +44,7 @@ const HomePage = {
     function goHabit()     { htdRouter.navigate('/habit'); }
     function goTimeBlock() { htdRouter.navigate('/time-block'); }
     function goFinance()   { htdRouter.navigate('/finance'); }
+    function goAgent()     { htdRouter.navigate('/agent'); }
 
     // 会议纪要行级跳转（带 id 定位，复用哈希路由）
     function goMeetingDetail(m) {
@@ -98,7 +99,7 @@ const HomePage = {
       home,
       charts,
       fmtDate, relativeTime, formatMoney,
-      goTodo, goProject, goMeeting, goSecret, goStudy, goReview, goVault, goHabit, goTimeBlock, goFinance,
+      goTodo, goProject, goMeeting, goSecret, goStudy, goReview, goVault, goHabit, goTimeBlock, goFinance, goAgent,
       goMeetingDetail, goProjectDetail,
       quickCheckIn, genRecommend, habitDone,
     };
@@ -320,6 +321,15 @@ const HomePage = {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 快捷工具：本地 Agent 收件箱入口 -->
+      <div class="home-card home-card--clickable" @click="goAgent" style="margin-top:var(--spacing-lg);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div class="home-card__title">本地 Agent 收件箱</div>
+          <div class="home-card__hint">本地确定性智能体：提交指令 → 自动匹配技能 → 本机执行，不联网</div>
+        </div>
+        <span class="home-card__viewall">打开 ›</span>
       </div>
 
       <!-- 数据看板：V1.5 §8.1 首页统计图表（S2-2a 响应式组件化） -->

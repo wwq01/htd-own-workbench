@@ -14,7 +14,7 @@ export default {
   key: 'db-health',
   title: '数据库健康巡检',
   description: '统计各模块数据量并确认本地数据库可读',
-  keywords: ['健康', 'health', '数据库', '状态', '巡检', '统计'],
+  keywords: ['健康', 'health', '数据库', '巡检', '状态巡检'],
   async run({ prisma }) {
     const tables = {};
     for (const t of TABLES) {

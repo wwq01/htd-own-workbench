@@ -7,7 +7,9 @@ import vaultDigest from './vault-digest.skill.js';
 import todoExtract from './todo-extract.skill.js';
 import dbHealth from './db-health.skill.js';
 import generic from './generic.skill.js';
+import weeklyReport from './weekly-report.skill.js';
+import habitStats from './habit-stats.skill.js';
 
-[vaultDigest, todoExtract, dbHealth, generic].forEach(registerSkill);
+[vaultDigest, todoExtract, dbHealth, generic, weeklyReport, habitStats].forEach(registerSkill);
 
 export { registerSkill, getSkill, listSkills, matchSkill, resolveSkill };
