@@ -12,6 +12,7 @@ import { openBrowser } from './common/utils/browser.js';
 import appConfig from './config/app.config.js';
 import logger from './common/logger.js';
 import { localIpv4 } from './common/utils/allowed-origins.js';
+import agentService from './modules/agent/agent.service.js';
 import http from 'http';
 
 /**
@@ -135,6 +136,15 @@ async function startServer() {
           + '请设置访问令牌（HTD_ACCESS_TOKEN）或改回仅本机监听。',
         );
       }
+
+      // V2-1：回收上次进程遗留的 running 僵尸任务。
+      // 内存队列随进程消亡，启动时仍是 running 的必是被中断的残骸；不恢复会永远卡在 running。
+      agentService
+        .recoverStale()
+        .then((n) => {
+          if (n > 0) logger.warn(`已回收 ${n} 个被中断的 Agent 任务（置为 failed）`);
+        })
+        .catch((e) => logger.warn(`Agent 僵尸任务回收失败（不影响启动）：${e.message}`));
 
       // S3-0：桌面模式以机器可读行告知壳实际端口（壳据此让 webview 加载对应地址）。
       // 约定：单行 JSON，前缀 HTD_READY，末尾换行；壳用 /^HTD_READY (.+)$/ 解析。

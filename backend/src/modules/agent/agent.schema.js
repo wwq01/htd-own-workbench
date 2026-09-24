@@ -8,6 +8,9 @@ export const createAgentTaskSchema = z.object({
   prompt: z.string().min(1, '指令内容不能为空').max(4000, '指令最多 4000 字符'),
   skillKey: z.string().min(1).max(64).optional().default('auto'),
   autoRun: z.boolean().optional().default(true),
+  // wait=true（默认）：提交后等待执行完成，保持既有同步契约
+  // wait=false：入队后立即返回 pending，实现真正的异步提交
+  wait: z.boolean().optional().default(true),
 });
 
 export const agentTaskIdSchema = z.object({

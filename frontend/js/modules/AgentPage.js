@@ -18,6 +18,7 @@ const AgentPage = {
     const loading = Vue.ref(false);
     const submitting = Vue.ref(false);
     const detail = Vue.ref(null);
+    const queue = Vue.ref(null);
 
     const form = Vue.reactive({
       title: '',
@@ -45,7 +46,15 @@ const AgentPage = {
       }
     }
 
-    Vue.onMounted(() => { loadSkills(); loadTasks(); });
+    async function loadQueue() {
+      try {
+        queue.value = await htdApi.get('/agent/queue');
+      } catch (e) {
+        queue.value = null;
+      }
+    }
+
+    Vue.onMounted(() => { loadSkills(); loadTasks(); loadQueue(); });
 
     async function submit() {
       if (!form.prompt.trim()) { showToast('请填写指令内容', 'warning'); return; }
@@ -74,6 +83,18 @@ const AgentPage = {
       } catch (e) { /* 静默 */ }
     }
 
+    async function cancelTask(id) {
+      try {
+        await htdApi.post(`/agent/tasks/${id}/cancel`);
+        showToast('已取消', 'success');
+        await loadTasks();
+        await loadQueue();
+        if (detail.value && detail.value.id === id) {
+          detail.value = tasks.value.find((t) => t.id === id) || null;
+        }
+      } catch (e) { /* htdApi 已提示 */ }
+    }
+
     async function removeTask(id) {
       if (!window.confirm('确认删除该任务？删除后不可恢复。')) return;
       try {
@@ -99,10 +120,15 @@ const AgentPage = {
       }
     }
 
+    // 仅「排队中(pending)」可取消：已在执行的同步技能后端无法中断，会明确报错
+    function canCancel(status) {
+      return status === 'pending';
+    }
+
     return {
-      skills, tasks, loading, submitting, detail, form,
-      loadSkills, loadTasks, submit, runAgain, removeTask, selectTask,
-      statusTag, formatResult,
+      skills, tasks, loading, submitting, detail, form, queue,
+      loadSkills, loadTasks, loadQueue, submit, runAgain, cancelTask, removeTask, selectTask,
+      statusTag, formatResult, canCancel,
     };
   },
   template: `
@@ -135,6 +161,14 @@ const AgentPage = {
       </div>
     </div>
 
+    <!-- 队列状态：可观测性（排队 / 执行 / 并发上限 / 超时） -->
+    <div v-if="queue" class="agent-queue">
+      <span class="agent-queue__item">排队 {{ queue.queued }}</span>
+      <span class="agent-queue__item">执行中 {{ queue.running }}</span>
+      <span class="agent-queue__item">并发上限 {{ queue.concurrency }}</span>
+      <span class="agent-queue__item">超时 {{ queue.timeoutMs }}ms</span>
+    </div>
+
     <!-- 列表 + 详情 -->
     <div class="agent-body">
       <div class="agent-list">
@@ -151,6 +185,7 @@ const AgentPage = {
           <div class="agent-item__foot">
             <span class="text-tertiary">{{ t.result && t.result.skill ? '技能：'+t.result.skill : '' }}</span>
             <span>
+              <button v-if="canCancel(t.status)" class="htp-btn htp-btn--text htp-btn--sm" @click.stop="cancelTask(t.id)">取消</button>
               <button class="htp-btn htp-btn--text htp-btn--sm" @click.stop="runAgain(t.id)">重跑</button>
               <button class="htp-btn htp-btn--text htp-btn--sm htp-btn--danger" @click.stop="removeTask(t.id)">删除</button>
             </span>
@@ -172,6 +207,7 @@ const AgentPage = {
             <pre class="agent-result-pre">{{ formatResult(detail.result) }}</pre>
           </div>
           <div class="agent-detail__actions">
+            <button v-if="canCancel(detail.status)" class="htp-btn htp-btn--secondary htp-btn--sm" @click="cancelTask(detail.id)">取消</button>
             <button class="htp-btn htp-btn--secondary htp-btn--sm" @click="runAgain(detail.id)">重新执行</button>
             <button class="htp-btn htp-btn--danger htp-btn--sm" @click="removeTask(detail.id)">删除</button>
           </div>

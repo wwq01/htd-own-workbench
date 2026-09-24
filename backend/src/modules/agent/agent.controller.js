@@ -28,6 +28,18 @@ class AgentController {
     } catch (err) { next(err); }
   }
 
+  async cancel(req, res, next) {
+    try {
+      res.success(await agentService.cancel(req.params.id), '已取消');
+    } catch (err) { next(err); }
+  }
+
+  async queue(req, res, next) {
+    try {
+      res.success(await agentService.queueStats());
+    } catch (err) { next(err); }
+  }
+
   async remove(req, res, next) {
     try {
       await agentService.remove(req.params.id);

@@ -6,11 +6,13 @@ import agentController from './agent.controller.js';
 
 const router = Router();
 
+router.get('/queue', agentController.queue);
 router.get('/tasks', agentController.list);
 router.get('/skills', agentController.skills);
 router.post('/tasks', agentController.create);
 router.get('/tasks/:id', agentController.getById);
 router.post('/tasks/:id/run', agentController.runNow);
+router.post('/tasks/:id/cancel', agentController.cancel);
 router.delete('/tasks/:id', agentController.remove);
 
 export default router;

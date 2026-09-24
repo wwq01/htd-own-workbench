@@ -2,7 +2,13 @@
  * 本地 Agent 通道 - Service 服务层
  */
 import agentRepository from './agent.repository.js';
-import { runTask } from './job-runner.js';
+import {
+  runTask,
+  submitTask,
+  cancelTask,
+  queueStats,
+  recoverStaleTasks,
+} from './job-runner.js';
 import { getSkill, listSkills } from './skills/index.js';
 import {
   createAgentTaskSchema,
@@ -34,7 +40,13 @@ class AgentService {
     });
 
     if (data.autoRun) {
-      return this._withParsedResult(await runTask(task.id));
+      // wait=true（默认）：等待执行完成，保持既有同步契约
+      if (data.wait) {
+        return this._withParsedResult(await runTask(task.id));
+      }
+      // wait=false：入队后立即返回 pending（真异步提交，结果稍后查详情）
+      submitTask(task.id);
+      return this._withParsedResult(await agentRepository.findById(task.id));
     }
     return this._withParsedResult(await agentRepository.findById(task.id));
   }
@@ -79,6 +91,22 @@ class AgentService {
     const exists = await agentRepository.findById(id);
     if (!exists) throw new BusinessError(ErrorCodes.AGENT_TASK_NOT_FOUND, '任务不存在或已删除');
     return agentRepository.softDeleteById(id);
+  }
+
+  /** 取消任务（仅排队中可取消，执行中会抛明确错误） */
+  async cancel(id) {
+    agentTaskIdSchema.parse({ id });
+    return this._withParsedResult(await cancelTask(id));
+  }
+
+  /** 队列状态（可观测性） */
+  async queueStats() {
+    return queueStats();
+  }
+
+  /** 启动恢复：回收上次进程遗留的 running 僵尸任务 */
+  async recoverStale() {
+    return recoverStaleTasks();
   }
 
   async listSkills() {
