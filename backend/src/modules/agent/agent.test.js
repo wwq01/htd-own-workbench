@@ -123,22 +123,43 @@ describe('Agent Service 集成测试', () => {
     expect(t.result.skill).toBe('habit-stats');
     expect(Array.isArray(t.result.output.perHabit)).toBe(true);
   });
+
+  it('按关键字自动匹配 finance-summary 技能', async () => {
+    // 注意勿用「汇总」——那是 weekly-report 的关键字，且注册更早会抢先命中
+    const t = await agentService.create({ prompt: `${PREFIX}看看这个月的财务收支情况` });
+    expect(t.status).toBe('succeeded');
+    expect(t.result.skill).toBe('finance-summary');
+    expect(typeof t.result.output.balance).toBe('number');
+    expect(Array.isArray(t.result.output.expenseByCategory)).toBe(true);
+  });
+
+  it('按关键字自动匹配 project-burndown 技能', async () => {
+    const t = await agentService.create({ prompt: `${PREFIX}看看项目进展和交付风险` });
+    expect(t.status).toBe('succeeded');
+    expect(t.result.skill).toBe('project-burndown');
+    expect(typeof t.result.output.avgProgress).toBe('number');
+    expect(Array.isArray(t.result.output.risky)).toBe(true);
+  });
 });
 
 describe('Skills 注册表', () => {
-  it('应注册 6 个技能且含 generic 兜底', () => {
+  it('应注册 8 个技能且含 generic 兜底', () => {
     const skills = listSkills();
-    expect(skills.length).toBe(6);
+    expect(skills.length).toBe(8);
     expect(skills.some((s) => s.key === 'generic')).toBe(true);
     expect(skills.some((s) => s.key === 'vault-digest')).toBe(true);
     expect(skills.some((s) => s.key === 'weekly-report')).toBe(true);
     expect(skills.some((s) => s.key === 'habit-stats')).toBe(true);
+    expect(skills.some((s) => s.key === 'finance-summary')).toBe(true);
+    expect(skills.some((s) => s.key === 'project-burndown')).toBe(true);
   });
   it('matchSkill 关键字命中', async () => {
     const { matchSkill } = await import('./skills/index.js');
     expect(matchSkill('总结我的 vault 笔记').key).toBe('vault-digest');
     expect(matchSkill('帮我生成本周周报').key).toBe('weekly-report');
     expect(matchSkill('统计一下习惯打卡').key).toBe('habit-stats');
+    expect(matchSkill('看看这个月的财务收支情况').key).toBe('finance-summary');
+    expect(matchSkill('看看项目进展和交付风险').key).toBe('project-burndown');
     expect(matchSkill('随便聊聊').key).toBe('generic');
   });
 });

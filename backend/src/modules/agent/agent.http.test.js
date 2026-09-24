@@ -39,9 +39,10 @@ describe('Agent 路由 HTTP 集成验证', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  it('GET /agent/skills 应返回全部 6 个已注册技能', async () => {
+  it('GET /agent/skills 应返回全部 8 个已注册技能', async () => {
     const skills = await request('/agent/skills');
     expect(skills.length).toBe(listSkills().length);
+    expect(skills.length).toBe(8);
     const keys = skills.map((s) => s.key);
     expect(keys).toEqual(
       expect.arrayContaining([
@@ -51,6 +52,8 @@ describe('Agent 路由 HTTP 集成验证', () => {
         'generic',
         'weekly-report',
         'habit-stats',
+        'finance-summary',
+        'project-burndown',
       ]),
     );
   });
